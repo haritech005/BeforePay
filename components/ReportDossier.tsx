@@ -2,6 +2,9 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { SellerProfileData } from "@/lib/investigation/sellerProfile";
+import { CheckResult } from "@/lib/types/investigation";
+import SellerProfileCard from "./SellerProfileCard";
 import {
   ShieldCheckIcon,
   ExternalLinkIcon,
@@ -16,6 +19,7 @@ interface ReportDossierProps {
   productName?: string;
   quotedPrice?: string;
   previewUrl?: string | null;
+  profileResult?: CheckResult<SellerProfileData> | null;
   onNewInvestigation?: () => void;
 }
 
@@ -24,6 +28,7 @@ export default function ReportDossier({
   productName = "Noise-Cancelling Wireless Earbuds (Studio Edition)",
   quotedPrice = "2,499",
   previewUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuC1H8V5geou3DIicGlTH7oI_vwStKq_ULYS6351cdsJcdZ5VwFsMRMi7jNvzKYex8yqGjt924cPZVHDT29C1gmzJvmxYc7QHG0bDhp6o6_w8WU2bWab0MTpZTWzFE2Xsjd3wJaIHYc9S-phQ5NyCxT3zrQw4V8rn1MfzuwjY9gdIRGF72pm4OxGjs8elrnEG5nSVb7DUH57DijVqd2yLNZo8SuoXc7WKtj48Z65wQIrVlPJyRQ5QK2GVQ",
+  profileResult,
   onNewInvestigation,
 }: ReportDossierProps) {
   const [copied, setCopied] = useState(false);
@@ -52,7 +57,9 @@ export default function ReportDossier({
           <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
           <span className="font-mono text-slate-900 font-bold">CASE #BP-88421</span>
           <span className="text-slate-300">•</span>
-          <span className="text-slate-600">Generated on {new Date().toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}</span>
+          <span className="text-slate-600">
+            Generated on {new Date().toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}
+          </span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -128,7 +135,7 @@ export default function ReportDossier({
               Public Signals Overview (4 Data Sources Evaluated)
             </p>
             <p className="text-xs text-slate-600 leading-relaxed">
-              We identified cheaper comparable listings online and visual catalog matches for this image. Review the findings below to make an independent buying decision.
+              We evaluated publicly indexed Instagram seller profile information, Google Lens optical matches, and price variances. Review the technical findings below.
             </p>
           </div>
         </div>
@@ -186,7 +193,7 @@ export default function ReportDossier({
                 Account Age &amp; Engagement
               </span>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Profile active for ~90 days with comments restricted on promotional posts.
+                Profile signals indicate public follower counts and recent post activity.
               </p>
             </div>
           </div>
@@ -207,48 +214,11 @@ export default function ReportDossier({
         </div>
       </section>
 
-      {/* SECTION 2: Seller Profile Signals */}
-      <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              02 // Profile Signals
-            </span>
-            <span className="text-slate-300">/</span>
-            <h2 className="text-base font-bold text-slate-900">
-              Account Signals
-            </h2>
-          </div>
-          <span className="px-2.5 py-0.5 rounded bg-blue-50 text-blue-700 font-mono text-xs font-bold">
-            @{displayHandle}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
-            <span className="block text-xs text-slate-500 font-medium">Followers</span>
-            <span className="text-xl font-extrabold text-slate-900 mt-0.5 block">1,840</span>
-          </div>
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
-            <span className="block text-xs text-slate-500 font-medium">Following</span>
-            <span className="text-xl font-extrabold text-slate-900 mt-0.5 block">412</span>
-          </div>
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
-            <span className="block text-xs text-slate-500 font-medium">Posts</span>
-            <span className="text-xl font-extrabold text-slate-900 mt-0.5 block">19</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-          <span className="font-bold text-slate-900 block">Observed Bio Specification:</span>
-          <p className="font-mono text-xs bg-white p-2.5 rounded-lg border border-slate-200 text-slate-800">
-            &quot;Premium Audio Gear · DM to Order · UPI &amp; Bank Transfer only · Delivery 3-5 days&quot;
-          </p>
-          <p className="text-slate-500 italic pt-1">
-            Note: Direct UPI-only requests carry higher counterparty risk if no escrow or tracking is offered.
-          </p>
-        </div>
-      </section>
+      {/* SECTION 2: Live / Evaluated Seller Profile Signals */}
+      <SellerProfileCard
+        profileResult={profileResult}
+        fallbackHandle={displayHandle}
+      />
 
       {/* SECTION 3: Product Image Matches */}
       <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">

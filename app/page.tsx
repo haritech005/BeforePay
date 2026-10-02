@@ -8,6 +8,8 @@ import InvestigationForm, {
 } from "@/components/InvestigationForm";
 import InvestigationProgress from "@/components/InvestigationProgress";
 import ReportDossier from "@/components/ReportDossier";
+import { CheckResult } from "@/lib/types/investigation";
+import { SellerProfileData } from "@/lib/investigation/sellerProfile";
 
 export default function HomePage() {
   const [currentView, setCurrentView] = useState<"form" | "progress" | "report">(
@@ -21,19 +23,44 @@ export default function HomePage() {
       productName: "",
       quotedPrice: "",
     });
+  const [profileResult, setProfileResult] =
+    useState<CheckResult<SellerProfileData> | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleFormSubmit = (data: InvestigationFormData) => {
+  const handleFormSubmit = async (data: InvestigationFormData) => {
     setInvestigationData(data);
     setCurrentView("progress");
+    setIsLoading(true);
 
-    // Seamlessly transition to the generated report after live progress scan
-    setTimeout(() => {
-      setCurrentView("report");
-    }, 2800);
+    try {
+      // Call Phase 3 Seller Profile API
+      const res = await fetch("/api/seller-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sellerHandle: data.sellerHandle }),
+      });
+
+      const result: CheckResult<SellerProfileData> = await res.json();
+      setProfileResult(result);
+    } catch (err: unknown) {
+      setProfileResult({
+        status: "failed",
+        data: null,
+        message: err instanceof Error ? err.message : "Network error occurred",
+        timestamp: new Date().toISOString(),
+      });
+    } finally {
+      setIsLoading(false);
+      // Allow user to see progress animation smoothly
+      setTimeout(() => {
+        setCurrentView("report");
+      }, 1500);
+    }
   };
 
   const handleNewInvestigation = () => {
     setCurrentView("form");
+    setProfileResult(null);
     setInvestigationData({
       sellerHandle: "",
       productImage: null,
@@ -55,7 +82,7 @@ export default function HomePage() {
         {currentView === "form" && (
           <InvestigationForm
             onSubmit={handleFormSubmit}
-            isLoading={false}
+            isLoading={isLoading}
           />
         )}
 
@@ -78,6 +105,7 @@ export default function HomePage() {
             productName={investigationData.productName}
             quotedPrice={investigationData.quotedPrice}
             previewUrl={investigationData.previewUrl}
+            profileResult={profileResult}
             onNewInvestigation={handleNewInvestigation}
           />
         )}
