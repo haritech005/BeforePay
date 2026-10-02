@@ -433,6 +433,7 @@ Add a clear introductory explanation of the product.
 Build reusable UI elements only where needed.
 Create a basic responsive results-page layout using clearly labelled development placeholders if necessary.
 Frontend requirements
+Remove Unnecessary files
 
 The first phase must establish the visual quality expected from the finished application.
 
