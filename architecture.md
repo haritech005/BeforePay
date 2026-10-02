@@ -656,7 +656,7 @@ Determine which listings are cheaper than the quoted Instagram price.
 Filter out listings equal to or more expensive than the quoted price.
 Avoid treating unrelated products as exact matches.
 Connect the function to the results page.
-Build the price comparison UI.
+Build the price comparison UI if not done.
 Required filtering behaviour
 
 If the Instagram seller asks ₹1,999:
@@ -681,6 +681,7 @@ Available merchant names.
 Available product titles and images.
 Original listing links.
 Relevant product identity information.
+If already implemented these just double check and map the api correctly
 
 If no qualifying listings are found, show an informative empty state.
 

@@ -1,9 +1,9 @@
 # BeforePay — Implementation Status Record
 
 ## Status Overview
-- **Current Phase:** Phase 4 — Product Image Investigation (Google Lens)
-- **Completed Phases:** Phase 0 (Approved), Phase 1 (Approved), Phase 2 (Approved), Phase 3 (Approved), Phase 4 (Complete & Verified)
-- **Last Approved Phase by Project Owner:** Phase 3
+- **Current Phase:** Phase 5 — Product Price Comparison (Google Shopping)
+- **Completed Phases:** Phase 0 (Approved), Phase 1 (Approved), Phase 2 (Approved), Phase 3 (Approved), Phase 4 (Approved), Phase 5 (Complete & Verified)
+- **Last Approved Phase by Project Owner:** Phase 4
 - **Current Blockers:** None
 
 ---
@@ -16,8 +16,8 @@
 | **Phase 1** | Application Foundation & Frontend Design System | Complete | Approved |
 | **Phase 2** | SerpApi Integration Foundation | Complete | Approved |
 | **Phase 3** | Instagram Seller Profile Check | Complete | Approved |
-| **Phase 4** | Product Image Investigation (Google Lens) | Complete (Verified) | Ready for Review |
-| **Phase 5** | Product Price Comparison (Google Shopping) | Not Started | Pending Phase 4 Approval |
+| **Phase 4** | Product Image Investigation (Google Lens) | Complete | Approved |
+| **Phase 5** | Product Price Comparison (Google Shopping) | Complete (Verified) | Ready for Review |
 | **Phase 6** | Public Reputation Search | Not Started | Pending Phase 5 Approval |
 | **Phase 7** | Evidence Aggregation & Local AI Analysis (Ollama/Gemma 3 4B) | Not Started | Pending Phase 6 Approval |
 | **Phase 8** | Complete End-to-End Integration | Not Started | Pending Phase 7 Approval |
@@ -25,11 +25,11 @@
 
 ---
 
-## Phase 4 Verification Summary
-- **Google Lens Engine:** Implemented `lib/investigation/productLens.ts` calling SerpApi `google_lens` engine with validated HTTP/HTTPS image URLs.
-- **Typed Match Extraction:** Extracted visual match attributes (`title`, `link`, `source`, `sourceIcon`, `thumbnail`, `price.extractedValue`, `price.value`), preserved original source links, and formulated neutral observations.
-- **Safe Handling & Constraints:** Handled empty input, non-HTTP local data URLs, network timeouts, and no-results states with clean, non-accusatory fallback messaging.
-- **API Route:** Created `/api/product-lens` POST route handler with input validation and typed JSON responses.
-- **Evidence Card UI:** Created `components/ProductLensCard.tsx` with responsive match cards, thumbnail visualizer, price tags, source platform labels, direct links, and standard analytical caveats.
-- **Pipeline Integration:** Connected live visual search in `app/page.tsx` running in parallel with the seller profile check and rendering into Section 03 of `components/ReportDossier.tsx`.
-- **Automated Verification:** `npx tsc --noEmit`, `npm run lint`, and `npm run build` all passed with 0 errors / 0 warnings. Live tested against real public product images returning 60 visual matches across 51 platforms.
+## Phase 5 Verification Summary
+- **Google Shopping Engine:** Implemented `lib/investigation/priceComparison.ts` querying SerpApi `google_shopping` localized to India (`gl: "in"`, `hl: "en"`).
+- **Price Normalization & Filtering:** Implemented `parseNumericPrice()` supporting INR ₹, Rs., USD $, commas, decimals, and string number variants. Enforced strict cheaper-only filtering (`listingPrice < quotedPrice`) and sorted by cheapest alternative first.
+- **Metrics Calculation:** Computed potential savings amount and percentage per listing, identified lowest market price, and generated concise observations.
+- **Route Handler:** Created `/api/price-comparison` POST route handler with input validation and typed JSON responses.
+- **Price Comparison UI:** Created `components/PriceComparisonCard.tsx` with price delta benchmark cards, savings badges, merchant logos, star ratings, direct merchant links, and neutral analytical standards.
+- **Pipeline Integration:** Connected live price comparison in `app/page.tsx` running in parallel with profile and visual search checks and passing `priceResult` to `components/ReportDossier.tsx`.
+- **Automated Verification:** `npx tsc --noEmit`, `npm run lint`, and `npm run build` all passed with 0 errors / 0 warnings. Validated 8 unit test fixtures and live SerpApi shopping queries.

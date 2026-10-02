@@ -4,9 +4,11 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { SellerProfileData } from "@/lib/investigation/sellerProfile";
 import { LensInvestigationData } from "@/lib/investigation/productLens";
+import { PriceComparisonData } from "@/lib/investigation/priceComparison";
 import { CheckResult } from "@/lib/types/investigation";
 import SellerProfileCard from "./SellerProfileCard";
 import ProductLensCard from "./ProductLensCard";
+import PriceComparisonCard from "./PriceComparisonCard";
 import {
   ShieldCheckIcon,
   ExternalLinkIcon,
@@ -23,6 +25,7 @@ interface ReportDossierProps {
   previewUrl?: string | null;
   profileResult?: CheckResult<SellerProfileData> | null;
   lensResult?: CheckResult<LensInvestigationData> | null;
+  priceResult?: CheckResult<PriceComparisonData> | null;
   onNewInvestigation?: () => void;
 }
 
@@ -33,6 +36,7 @@ export default function ReportDossier({
   previewUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuC1H8V5geou3DIicGlTH7oI_vwStKq_ULYS6351cdsJcdZ5VwFsMRMi7jNvzKYex8yqGjt924cPZVHDT29C1gmzJvmxYc7QHG0bDhp6o6_w8WU2bWab0MTpZTWzFE2Xsjd3wJaIHYc9S-phQ5NyCxT3zrQw4V8rn1MfzuwjY9gdIRGF72pm4OxGjs8elrnEG5nSVb7DUH57DijVqd2yLNZo8SuoXc7WKtj48Z65wQIrVlPJyRQ5QK2GVQ",
   profileResult,
   lensResult,
+  priceResult,
   onNewInvestigation,
 }: ReportDossierProps) {
   const [copied, setCopied] = useState(false);
@@ -230,77 +234,12 @@ export default function ReportDossier({
         previewUrl={previewUrl}
       />
 
-      {/* SECTION 4: Cheaper Comparable Listings */}
-      <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              04 // Price Comparison
-            </span>
-            <span className="text-slate-300">/</span>
-            <h2 className="text-base font-bold text-slate-900">
-              Cheaper Comparable Listings (Google Shopping)
-            </h2>
-          </div>
-          <span className="text-xs font-semibold text-slate-600">
-            Seller Quoted: ₹{quotedPrice}
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-400 uppercase font-bold">
-                <th className="py-2.5 px-3">Listing / Product</th>
-                <th className="py-2.5 px-3">Price &amp; Savings</th>
-                <th className="py-2.5 px-3">Merchant / Warranty</th>
-                <th className="py-2.5 px-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-3 px-3 font-bold text-slate-900">Boat Airdopes 141</td>
-                <td className="py-3 px-3">
-                  <span className="font-bold text-emerald-700 text-sm">₹1,099</span>
-                  <span className="block text-[11px] text-emerald-600 font-bold">-56% lower</span>
-                </td>
-                <td className="py-3 px-3 text-slate-600">Amazon India • 1-Yr Warranty</td>
-                <td className="py-3 px-3 text-right">
-                  <a href="#amazon" className="text-blue-600 hover:underline font-semibold inline-flex items-center gap-1">
-                    View <ExternalLinkIcon className="w-3 h-3" />
-                  </a>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-3 px-3 font-bold text-slate-900">Noise Buds VS102</td>
-                <td className="py-3 px-3">
-                  <span className="font-bold text-emerald-700 text-sm">₹899</span>
-                  <span className="block text-[11px] text-emerald-600 font-bold">-64% lower</span>
-                </td>
-                <td className="py-3 px-3 text-slate-600">Flipkart • Standard Warranty</td>
-                <td className="py-3 px-3 text-right">
-                  <a href="#flipkart" className="text-blue-600 hover:underline font-semibold inline-flex items-center gap-1">
-                    View <ExternalLinkIcon className="w-3 h-3" />
-                  </a>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-3 px-3 font-bold text-slate-900">Generic K-10 TWS</td>
-                <td className="py-3 px-3">
-                  <span className="font-bold text-emerald-700 text-sm">₹549</span>
-                  <span className="block text-[11px] text-emerald-600 font-bold">-78% lower</span>
-                </td>
-                <td className="py-3 px-3 text-slate-600">Meesho • 5-Day Return</td>
-                <td className="py-3 px-3 text-right">
-                  <a href="#meesho" className="text-blue-600 hover:underline font-semibold inline-flex items-center gap-1">
-                    View <ExternalLinkIcon className="w-3 h-3" />
-                  </a>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* SECTION 4: Cheaper Comparable Listings (Google Shopping) */}
+      <PriceComparisonCard
+        priceResult={priceResult}
+        quotedPrice={quotedPrice}
+        productName={productName}
+      />
 
       {/* SECTION 5: Public Discussions & Reputation */}
       <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">

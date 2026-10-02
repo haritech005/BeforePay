@@ -11,6 +11,7 @@ import ReportDossier from "@/components/ReportDossier";
 import { CheckResult } from "@/lib/types/investigation";
 import { SellerProfileData } from "@/lib/investigation/sellerProfile";
 import { LensInvestigationData } from "@/lib/investigation/productLens";
+import { PriceComparisonData } from "@/lib/investigation/priceComparison";
 
 export default function HomePage() {
   const [currentView, setCurrentView] = useState<"form" | "progress" | "report">(
@@ -28,6 +29,8 @@ export default function HomePage() {
     useState<CheckResult<SellerProfileData> | null>(null);
   const [lensResult, setLensResult] =
     useState<CheckResult<LensInvestigationData> | null>(null);
+  const [priceResult, setPriceResult] =
+    useState<CheckResult<PriceComparisonData> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFormSubmit = async (data: InvestigationFormData) => {
@@ -36,7 +39,7 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
-      // Run Phase 3 (Seller Profile) and Phase 4 (Product Lens) in parallel
+      // Run Phase 3 (Seller Profile), Phase 4 (Product Lens), and Phase 5 (Price Comparison) in parallel
       const profilePromise = data.sellerHandle
         ? fetch("/api/seller-profile", {
             method: "POST",
@@ -67,9 +70,32 @@ export default function HomePage() {
             }))
         : Promise.resolve(null);
 
-      const [pResult, lResult] = await Promise.all([profilePromise, lensPromise]);
+      const pricePromise = data.productName && data.quotedPrice
+        ? fetch("/api/price-comparison", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              productName: data.productName,
+              quotedPrice: data.quotedPrice,
+            }),
+          })
+            .then((r) => r.json())
+            .catch((err) => ({
+              status: "failed" as const,
+              data: null,
+              message: err instanceof Error ? err.message : "Network error",
+              timestamp: new Date().toISOString(),
+            }))
+        : Promise.resolve(null);
+
+      const [pResult, lResult, prResult] = await Promise.all([
+        profilePromise,
+        lensPromise,
+        pricePromise,
+      ]);
       setProfileResult(pResult);
       setLensResult(lResult);
+      setPriceResult(prResult);
     } catch (err: unknown) {
       setProfileResult({
         status: "failed",
@@ -90,6 +116,7 @@ export default function HomePage() {
     setCurrentView("form");
     setProfileResult(null);
     setLensResult(null);
+    setPriceResult(null);
     setInvestigationData({
       sellerHandle: "",
       productImage: null,
@@ -136,6 +163,7 @@ export default function HomePage() {
             previewUrl={investigationData.previewUrl}
             profileResult={profileResult}
             lensResult={lensResult}
+            priceResult={priceResult}
             onNewInvestigation={handleNewInvestigation}
           />
         )}
