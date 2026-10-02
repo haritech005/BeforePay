@@ -3,8 +3,10 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { SellerProfileData } from "@/lib/investigation/sellerProfile";
+import { LensInvestigationData } from "@/lib/investigation/productLens";
 import { CheckResult } from "@/lib/types/investigation";
 import SellerProfileCard from "./SellerProfileCard";
+import ProductLensCard from "./ProductLensCard";
 import {
   ShieldCheckIcon,
   ExternalLinkIcon,
@@ -20,6 +22,7 @@ interface ReportDossierProps {
   quotedPrice?: string;
   previewUrl?: string | null;
   profileResult?: CheckResult<SellerProfileData> | null;
+  lensResult?: CheckResult<LensInvestigationData> | null;
   onNewInvestigation?: () => void;
 }
 
@@ -29,6 +32,7 @@ export default function ReportDossier({
   quotedPrice = "2,499",
   previewUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuC1H8V5geou3DIicGlTH7oI_vwStKq_ULYS6351cdsJcdZ5VwFsMRMi7jNvzKYex8yqGjt924cPZVHDT29C1gmzJvmxYc7QHG0bDhp6o6_w8WU2bWab0MTpZTWzFE2Xsjd3wJaIHYc9S-phQ5NyCxT3zrQw4V8rn1MfzuwjY9gdIRGF72pm4OxGjs8elrnEG5nSVb7DUH57DijVqd2yLNZo8SuoXc7WKtj48Z65wQIrVlPJyRQ5QK2GVQ",
   profileResult,
+  lensResult,
   onNewInvestigation,
 }: ReportDossierProps) {
   const [copied, setCopied] = useState(false);
@@ -220,61 +224,11 @@ export default function ReportDossier({
         fallbackHandle={displayHandle}
       />
 
-      {/* SECTION 3: Product Image Matches */}
-      <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              03 // Optical Forensics
-            </span>
-            <span className="text-slate-300">/</span>
-            <h2 className="text-base font-bold text-slate-900">
-              Product Image Matches (Google Lens)
-            </h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-900 block">Wholesale Catalog Listing</span>
-              <span className="text-xs text-slate-500 mt-1 block">Found on Made-in-China</span>
-            </div>
-            <a
-              href="#lens-match-1"
-              className="mt-3 text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1"
-            >
-              View source catalog <ExternalLinkIcon className="w-3 h-3" />
-            </a>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-900 block">B2B Wholesale Rate</span>
-              <span className="text-xs text-slate-500 mt-1 block">Listed at ₹450 on Indiamart</span>
-            </div>
-            <a
-              href="#lens-match-2"
-              className="mt-3 text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1"
-            >
-              View listing <ExternalLinkIcon className="w-3 h-3" />
-            </a>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-900 block">Online Retail Marketplace</span>
-              <span className="text-xs text-slate-500 mt-1 block">Listed at ₹799 on ElectroDeals</span>
-            </div>
-            <a
-              href="#lens-match-3"
-              className="mt-3 text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1"
-            >
-              View store page <ExternalLinkIcon className="w-3 h-3" />
-            </a>
-          </div>
-        </div>
-      </section>
+      {/* SECTION 3: Product Image Matches (Google Lens) */}
+      <ProductLensCard
+        lensResult={lensResult}
+        previewUrl={previewUrl}
+      />
 
       {/* SECTION 4: Cheaper Comparable Listings */}
       <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">

@@ -649,7 +649,7 @@ Compare the Instagram seller's quoted price against cheaper comparable online li
 Tasks
 Review the official Google Shopping API documentation.
 Implement a dedicated shopping search function.
-Accept product details and the quoted price.
+Accept product details, Image and the quoted price.
 Normalize prices into a numeric comparison format where parsing is reliable.
 Retrieve available product titles, prices, merchant names, ratings, and original listing URLs.
 Determine which listings are cheaper than the quoted Instagram price.

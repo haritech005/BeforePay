@@ -10,6 +10,7 @@ import InvestigationProgress from "@/components/InvestigationProgress";
 import ReportDossier from "@/components/ReportDossier";
 import { CheckResult } from "@/lib/types/investigation";
 import { SellerProfileData } from "@/lib/investigation/sellerProfile";
+import { LensInvestigationData } from "@/lib/investigation/productLens";
 
 export default function HomePage() {
   const [currentView, setCurrentView] = useState<"form" | "progress" | "report">(
@@ -25,6 +26,8 @@ export default function HomePage() {
     });
   const [profileResult, setProfileResult] =
     useState<CheckResult<SellerProfileData> | null>(null);
+  const [lensResult, setLensResult] =
+    useState<CheckResult<LensInvestigationData> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFormSubmit = async (data: InvestigationFormData) => {
@@ -33,15 +36,40 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
-      // Call Phase 3 Seller Profile API
-      const res = await fetch("/api/seller-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sellerHandle: data.sellerHandle }),
-      });
+      // Run Phase 3 (Seller Profile) and Phase 4 (Product Lens) in parallel
+      const profilePromise = data.sellerHandle
+        ? fetch("/api/seller-profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sellerHandle: data.sellerHandle }),
+          })
+            .then((r) => r.json())
+            .catch((err) => ({
+              status: "failed" as const,
+              data: null,
+              message: err instanceof Error ? err.message : "Network error",
+              timestamp: new Date().toISOString(),
+            }))
+        : Promise.resolve(null);
 
-      const result: CheckResult<SellerProfileData> = await res.json();
-      setProfileResult(result);
+      const lensPromise = data.previewUrl
+        ? fetch("/api/product-lens", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imageUrl: data.previewUrl }),
+          })
+            .then((r) => r.json())
+            .catch((err) => ({
+              status: "failed" as const,
+              data: null,
+              message: err instanceof Error ? err.message : "Network error",
+              timestamp: new Date().toISOString(),
+            }))
+        : Promise.resolve(null);
+
+      const [pResult, lResult] = await Promise.all([profilePromise, lensPromise]);
+      setProfileResult(pResult);
+      setLensResult(lResult);
     } catch (err: unknown) {
       setProfileResult({
         status: "failed",
@@ -51,7 +79,7 @@ export default function HomePage() {
       });
     } finally {
       setIsLoading(false);
-      // Allow user to see progress animation smoothly
+      // Allow user to view progress animation smoothly
       setTimeout(() => {
         setCurrentView("report");
       }, 1500);
@@ -61,6 +89,7 @@ export default function HomePage() {
   const handleNewInvestigation = () => {
     setCurrentView("form");
     setProfileResult(null);
+    setLensResult(null);
     setInvestigationData({
       sellerHandle: "",
       productImage: null,
@@ -106,6 +135,7 @@ export default function HomePage() {
             quotedPrice={investigationData.quotedPrice}
             previewUrl={investigationData.previewUrl}
             profileResult={profileResult}
+            lensResult={lensResult}
             onNewInvestigation={handleNewInvestigation}
           />
         )}
