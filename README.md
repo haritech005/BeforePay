@@ -23,14 +23,14 @@ In India and worldwide, social commerce on Instagram and WhatsApp has grown rapi
 
 ## 2. SerpApi Integration
 
-BeforePay utilizes SerpApi as its core data ingestion layer across four distinct engines:
+BeforePay utilizes SerpApi as its core live search and social intelligence layer across four primary engines:
 
 | Investigation Module | SerpApi Engine | Purpose & Query Structure |
 |---|---|---|
-| **Seller Profile Check** | `google` | Queries `site:instagram.com/{handle}` to retrieve account metadata, follower volume, bio description, and verification signals. |
+| **Instagram Seller Profile** | `instagram_profile` / `google` | Queries the SerpApi Instagram Profile API (`profile_id: {handle}`) to directly retrieve structured profile metadata: follower count, following count, post volume, biography, external website links, verification status, and avatar image. Falls back to Google Search (`site:instagram.com/{handle}`) when indexed signals are needed. |
 | **Product Reverse Search** | `google_lens` | Uploads compressed image binaries via SerpApi `/image` endpoint (`image_id`) to identify identical product catalog listings across the web. |
 | **Price Comparison** | `google_shopping` | Extracts candidate product titles from visual matches and queries Google Shopping with India localization (`gl=in`, `hl=en`, `location=India`) to find lower-priced offers from trusted merchants (Amazon, Myntra, Flipkart, AJIO, etc.). |
-| **Seller Reputation** | `google` | Executes multi-pattern dispute queries (`"{handle}" scam OR fraud OR complaint OR fake`) across Reddit, Quora, and consumer grievance portals, backed by entity-matching algorithms to prevent false positives. |
+| **Seller Reputation & Complaints** | `google` | Executes multi-pattern dispute queries (`"{handle}" scam OR fraud OR complaint OR fake`) across Reddit, Quora, and consumer grievance portals, backed by entity-matching algorithms to prevent false positives. |
 
 ---
 
@@ -53,11 +53,13 @@ BeforePay utilizes SerpApi as its core data ingestion layer across four distinct
             +-----------------------------------+-----------------------------------+
             |                                   |                                   |
             v                                   v                                   v
-   +-----------------+                 +-----------------+                 +-----------------+
-   | Seller Profile  |                 | Google Lens &   |                 | Reputation &    |
-   | (SerpApi Google)|                 | Google Shopping |                 | Grievance Search|
-   +--------+--------+                 +--------+--------+                 +--------+--------+
-            |                                   |                                   |
+   +-----------------------+           +-----------------+                 +-----------------+
+   |   Instagram Profile   |           | Google Lens &   |                 | Reputation &    |
+   | (SerpApi Instagram API|           | Google Shopping |                 | Grievance Search|
+   |   & Google Search)    |           |  (SerpApi APIs) |                 | (SerpApi Google)|
+   +-----------+-----------+           +--------+--------+                 +--------+--------+
+               |                                |                                   |
+               +--------------------------------+-----------------------------------+
             +-----------------------------------+-----------------------------------+
                                                 |
                                     Normalized Evidence DTO
