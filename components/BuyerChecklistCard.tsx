@@ -12,12 +12,8 @@ export default function BuyerChecklistCard({ checklist = [] }: BuyerChecklistCar
     <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-            06 // Checklist
-          </span>
-          <span className="text-slate-300">/</span>
           <h2 className="text-base font-bold text-slate-900">
-            &quot;Before You Pay&quot; Buyer Safety Checklist
+            6. Safe Buying Checklist
           </h2>
         </div>
         <span className="text-xs font-semibold text-slate-400">

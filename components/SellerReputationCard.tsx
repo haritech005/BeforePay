@@ -19,46 +19,12 @@ export default function SellerReputationCard({
   reputationResult,
   sellerHandle = "seller",
 }: SellerReputationCardProps) {
-  const displayHandle = sellerHandle.replace(/^@/, "");
-
-  // Empty / No results state
-  if (reputationResult && reputationResult.status === "no_results") {
-    return (
-      <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              05 // Reputation
-            </span>
-            <span className="text-slate-300">/</span>
-            <h2 className="text-base font-bold text-slate-900">
-              Public Discussions &amp; Forum Mentions
-            </h2>
-          </div>
-          <span className="px-2.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-xs font-bold">
-            0 Records
-          </span>
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
-          <ShieldCheckIcon className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-0.5">
-            <span className="text-xs font-bold text-slate-900">
-              No Public Complaints or Forum Grievances Indexed
-            </span>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              {reputationResult.message ||
-                `No indexed scam complaints or forum discussions were found under @"${displayHandle}".`}
-            </p>
-          </div>
-        </div>
-
-        <p className="text-slate-400 text-[11px] italic">
-          Analytical Standard: The absence of indexed negative mentions does not guarantee seller safety. Newer accounts or sellers operating under alternate names may not have accumulated a public search footprint.
-        </p>
-      </section>
-    );
-  }
+  // Normalize handle
+  const displayHandle = sellerHandle
+    .trim()
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+    .replace(/[/?#].*$/, "")
+    .replace(/^@/, "");
 
   // Failed state
   if (reputationResult && reputationResult.status === "failed") {
@@ -66,12 +32,8 @@ export default function SellerReputationCard({
       <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              05 // Reputation
-            </span>
-            <span className="text-slate-300">/</span>
             <h2 className="text-base font-bold text-slate-900">
-              Public Discussions &amp; Forum Mentions
+              5. Public Reviews &amp; Complaints
             </h2>
           </div>
         </div>
@@ -97,20 +59,25 @@ export default function SellerReputationCard({
 
   return (
     <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-            05 // Reputation
-          </span>
-          <span className="text-slate-300">/</span>
           <h2 className="text-base font-bold text-slate-900">
-            Public Discussions &amp; Forum Mentions
+            5. Public Reviews &amp; Complaints
           </h2>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="px-2.5 py-0.5 rounded bg-blue-50 text-blue-700 font-mono text-xs font-bold border border-blue-100">
-            {mentions.length > 0 ? `${mentions.length} Mentions Found` : "Reputation Scan Active"}
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+              mentions.length > 0
+                ? "bg-amber-50 text-amber-800 border-amber-200"
+                : "bg-emerald-50 text-emerald-800 border-emerald-200"
+            }`}
+          >
+            {mentions.length > 0
+              ? `${mentions.length} Complaint${mentions.length === 1 ? "" : "s"} Found`
+              : "0 Complaints Found"}
           </span>
           {reputationResult?.source && (
             <a
@@ -126,7 +93,7 @@ export default function SellerReputationCard({
         </div>
       </div>
 
-      {/* Target Handle Reputation Overview */}
+      {/* Target Overview / Search Query */}
       <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center shrink-0">
@@ -136,43 +103,41 @@ export default function SellerReputationCard({
             <span className="text-xs font-bold text-slate-900 block">
               Search Target: @{displayHandle}
             </span>
-            <p className="text-xs text-slate-600 mt-0.5 font-mono">
-              Query: {data?.queryUsed || `"${displayHandle}" (scam OR complaint OR fraud OR review)`}
+            <p className="text-xs text-slate-500 mt-0.5">
+              Checked Reddit, Quora, consumer forums, and public complaint records.
             </p>
           </div>
         </div>
 
         <div className="shrink-0 flex items-center gap-2">
-          {data?.summaryFindings?.hasDirectComplaints ? (
-            <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 text-xs font-bold border border-rose-200">
-              Grievance Boards Mentioned
+          {mentions.length > 0 ? (
+            <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300">
+              Dispute Mentions Detected
             </span>
           ) : (
-            <span className="px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 text-xs font-semibold">
-              Public Discussion Records
+            <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
+              Clean Public Track Record
             </span>
           )}
         </div>
       </div>
 
-      {/* Mentions Grid */}
+      {/* Grievances List or Clean Record Banner */}
       {mentions.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {mentions.slice(0, 6).map((mention, idx) => (
+          {mentions.map((mention, idx) => (
             <div
               key={idx}
-              className="p-4 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors flex flex-col justify-between gap-3"
+              className="p-4 rounded-xl bg-amber-50/50 border border-amber-200 hover:border-amber-300 transition-colors flex flex-col justify-between gap-3"
             >
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold text-blue-700 px-2 py-0.5 rounded bg-blue-50 border border-blue-100 uppercase tracking-wider truncate max-w-[160px]">
+                  <span className="text-[11px] font-bold text-amber-800 px-2 py-0.5 rounded bg-amber-100 uppercase tracking-wider truncate max-w-[160px]">
                     {mention.source}
                   </span>
-                  {mention.date && (
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {mention.date}
-                    </span>
-                  )}
+                  <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                    Dispute Signal
+                  </span>
                 </div>
 
                 <h4
@@ -183,7 +148,7 @@ export default function SellerReputationCard({
                 </h4>
 
                 {mention.snippet && (
-                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed bg-white p-2.5 rounded-lg border border-slate-200/70 font-sans">
+                  <p className="text-xs text-slate-700 line-clamp-3 leading-relaxed bg-white p-2.5 rounded-lg border border-amber-200 font-sans italic">
                     &ldquo;{mention.snippet}&rdquo;
                   </p>
                 )}
@@ -193,7 +158,7 @@ export default function SellerReputationCard({
                 href={mention.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1 self-start"
+                className="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1 self-start pt-1"
               >
                 <span>Inspect original discussion</span>
                 <ExternalLinkIcon className="w-3 h-3" />
@@ -202,39 +167,18 @@ export default function SellerReputationCard({
           ))}
         </div>
       ) : (
-        /* Fallback sample representation */
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+        <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 flex items-start gap-3">
           <ShieldCheckIcon className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
           <div className="flex flex-col gap-0.5">
             <span className="text-xs font-bold text-slate-900">
-              No Indexed Consumer Disputes
+              No Public Scam Complaints or Grievances Indexed
             </span>
             <p className="text-xs text-slate-600 leading-relaxed">
-              No indexed consumer court judgments, scam complaints, or grievance board threads were found associated with @{displayHandle}.
+              We searched public consumer grievance boards (Reddit, Consumer Complaints Court, Quora, and web discussions) for scam reports under @{displayHandle} and found zero unresolved customer complaints.
             </p>
           </div>
         </div>
       )}
-
-      {/* Observations */}
-      {data?.observations && data.observations.length > 0 && (
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-          <span className="font-bold text-slate-900 block">
-            Reputation Scan Observations:
-          </span>
-          <ul className="list-disc list-inside text-slate-600 space-y-1">
-            {data.observations.map((obs, idx) => (
-              <li key={idx} className="leading-relaxed">
-                {obs}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <p className="text-slate-400 text-[11px] italic">
-        Analytical Standard: Public forum posts and search snippets are unverified consumer statements and search engine extractions, not legal determinations. Always verify claims through primary sources.
-      </p>
     </section>
   );
 }

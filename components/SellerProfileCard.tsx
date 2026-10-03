@@ -28,15 +28,11 @@ export default function SellerProfileCard({
       <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              02 // Profile Signals
-            </span>
-            <span className="text-slate-300">/</span>
             <h2 className="text-base font-bold text-slate-900">
-              Account Footprint Audit
+              2. Instagram Profile Details
             </h2>
           </div>
-          <span className="px-2.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-xs font-bold">
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
             @{displayHandle}
           </span>
         </div>
@@ -61,15 +57,11 @@ export default function SellerProfileCard({
       <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              02 // Profile Signals
-            </span>
-            <span className="text-slate-300">/</span>
             <h2 className="text-base font-bold text-slate-900">
-              Account Footprint Audit
+              2. Instagram Profile Details
             </h2>
           </div>
-          <span className="px-2.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-xs font-bold">
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
             @{displayHandle}
           </span>
         </div>
@@ -96,19 +88,15 @@ export default function SellerProfileCard({
     <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-            02 // Profile Signals
-          </span>
-          <span className="text-slate-300">/</span>
           <h2 className="text-base font-bold text-slate-900">
-            Account Footprint Audit
+            2. Instagram Profile Details
           </h2>
         </div>
         <a
           href={data?.profileUrl || `https://www.instagram.com/${displayHandle}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-2.5 py-0.5 rounded bg-blue-50 text-blue-700 font-mono text-xs font-bold hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
+          className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
         >
           @{data?.username || displayHandle}
           <ExternalLinkIcon className="w-3 h-3" />
@@ -173,19 +161,21 @@ export default function SellerProfileCard({
         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
           <span className="block text-xs text-slate-500 font-medium">Followers</span>
           <span className="text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5 block">
-            {data ? formatCount(data.followersCount) : "1,840"}
+            {data ? formatCount(data.followersCount) : "—"}
           </span>
         </div>
         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
           <span className="block text-xs text-slate-500 font-medium">Following</span>
           <span className="text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5 block">
-            {data ? formatCount(data.followingCount) : "412"}
+            {data ? formatCount(data.followingCount) : "—"}
           </span>
         </div>
         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-          <span className="block text-xs text-slate-500 font-medium">Posts</span>
+          <span className="block text-xs text-slate-500 font-medium" title="Recent media posts retrieved from public index">
+            Indexed Posts
+          </span>
           <span className="text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5 block">
-            {data ? formatCount(data.postsCount) : "19"}
+            {data ? (data.postsCount > 0 ? `${formatCount(data.postsCount)} Recent` : "0") : "—"}
           </span>
         </div>
       </div>
@@ -217,23 +207,6 @@ export default function SellerProfileCard({
             </a>
           </div>
         )}
-
-        {data?.signals?.accountNotes && data.signals.accountNotes.length > 0 && (
-          <div className="pt-2 border-t border-slate-200/80 space-y-1">
-            <span className="font-bold text-slate-900 block">Profile Observations:</span>
-            <ul className="list-disc list-inside text-slate-600 space-y-0.5">
-              {data.signals.accountNotes.map((note, idx) => (
-                <li key={idx} className="leading-relaxed">
-                  {note}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <p className="text-slate-400 text-[11px] italic pt-1">
-          Analytical Standard: Profile follower counts and post numbers are statistical observations, not definitive proof of legitimacy or fraud.
-        </p>
       </div>
     </section>
   );

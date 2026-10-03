@@ -99,12 +99,9 @@ export default function ImageUploader({
             *
           </span>
         </label>
-        <span className="text-xs font-medium text-slate-500">
-          Reverse-match ready
-        </span>
       </div>
-      <p className="text-xs text-slate-600">
-        Upload a screenshot of the post, story, or product picture quoted by the seller.
+      <p className="text-xs text-slate-500">
+        Upload a screenshot or photo of the product.
       </p>
 
       <input
@@ -151,7 +148,7 @@ export default function ImageUploader({
                 or drag and drop
               </p>
               <p className="text-xs text-slate-500 mt-1">
-                Supports JPG, PNG, WEBP (Max {MAX_FILE_SIZE_MB}MB)
+                JPG, PNG, WEBP (Max {MAX_FILE_SIZE_MB}MB)
               </p>
             </div>
           </div>
@@ -187,7 +184,7 @@ export default function ImageUploader({
               </div>
               <span className="text-xs text-emerald-700 flex items-center gap-1 mt-0.5 font-medium">
                 <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
-                Image ready for Google Lens search
+                Image ready for search
               </span>
             </div>
           </div>
@@ -212,20 +209,6 @@ export default function ImageUploader({
           </div>
         </div>
       )}
-
-      {/* Ephemeral Match Notification Badge */}
-      <div className="mt-1 flex items-start gap-2.5 p-3 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200">
-        <SearchIcon className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-        <div className="flex flex-col">
-          <span className="text-xs font-bold text-slate-900">
-            Ephemeral visual comparison
-          </span>
-          <span className="text-xs text-slate-600 leading-relaxed">
-            Photos are queried in-memory against catalog repositories (Google Lens)
-            and are not permanently stored.
-          </span>
-        </div>
-      </div>
 
       {displayError && (
         <p className="text-xs text-rose-600 flex items-center gap-1 font-semibold mt-1">

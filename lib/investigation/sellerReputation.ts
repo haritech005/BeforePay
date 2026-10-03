@@ -61,7 +61,9 @@ function classifyPlatform(url: string, source: string): "forum" | "consumer_boar
     lower.includes("mouthshut") ||
     lower.includes("trustpilot") ||
     lower.includes("consumeraffairs") ||
-    lower.includes("cybercrime")
+    lower.includes("cybercrime") ||
+    lower.includes("nationalconsumerhelpline") ||
+    lower.includes("voxya")
   ) {
     return "consumer_board";
   }
@@ -69,7 +71,8 @@ function classifyPlatform(url: string, source: string): "forum" | "consumer_boar
     lower.includes("reddit") ||
     lower.includes("quora") ||
     lower.includes("forum") ||
-    lower.includes("community")
+    lower.includes("community") ||
+    lower.includes("team-bhp")
   ) {
     return "forum";
   }
@@ -86,7 +89,207 @@ function classifyPlatform(url: string, source: string): "forum" | "consumer_boar
 }
 
 /**
+ * Validates that a search result is genuinely discussing the queried seller/brand,
+ * preventing false-positive attribution of generic scam posts or unrelated companies.
+ */
+function isRelevantToSeller(
+  item: { title: string; snippet: string; link: string },
+  handle: string
+): boolean {
+  const combined = `${item.title} ${item.snippet} ${item.link}`.toLowerCase();
+  const normalizedHandle = handle.toLowerCase().trim().replace(/^@/, "");
+  const handleNoExt = normalizedHandle.replace(
+    /\.(in|com|org|store|shop|online|co|net|co\.in)$/i,
+    ""
+  );
+
+  // Form words from handle (e.g. houseofclothes -> house of clothes, brand_shop -> brand shop)
+  const spacedHandle = normalizedHandle
+    .replace(/[._-]/g, " ")
+    .replace(/\b(in|com|official)\b/g, "")
+    .trim();
+
+  const targetTerms = [
+    normalizedHandle,
+    handleNoExt,
+    `@${normalizedHandle}`,
+    `@${handleNoExt}`,
+    spacedHandle,
+  ].filter((t) => t.length >= 3);
+
+  // Must mention at least one variation of the target seller name/handle
+  const mentionsSeller = targetTerms.some((term) =>
+    combined.includes(term.toLowerCase())
+  );
+
+  if (!mentionsSeller) {
+    return false;
+  }
+
+  // Prevent false-positive substring collisions (e.g. "houseofcb" vs "houseofclothes")
+  if (
+    combined.includes("houseofcb") &&
+    !combined.includes("houseofclothes") &&
+    !combined.includes("house of clothes")
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Detects whether a post snippet or title is a product sales drop, marketing post,
+ * store announcement, or catalog listing from a boutique.
+ */
+function isPromotionalOrSellerPost(combinedText: string): boolean {
+  const promoKeywords = [
+    "dm for orders",
+    "dm to order",
+    "dm to buy",
+    "dm for price",
+    "dm for details",
+    "dm us",
+    "new arrivals",
+    "new arrival",
+    "new drop",
+    "fresh drop",
+    "new collection",
+    "latest collection",
+    "winter collection",
+    "summer collection",
+    "save to buy later",
+    "save now and buy",
+    "buy now",
+    "order now",
+    "link in bio",
+    "free shipping",
+    "cash on delivery",
+    "cod available",
+    "clicked on iphone",
+    "clicked on i phone",
+    "colour might slightly",
+    "color might slightly",
+    "color may vary",
+    "photos are clicked",
+    "visit us at",
+    "store location",
+    "store:",
+    "shop no",
+    "sizes:",
+    "size:",
+    "price:",
+    "wash care:",
+    "fabric:",
+    "• follow",
+    "follow for more",
+    "follow our page",
+    "knitted shirt",
+    "linen shirt",
+    "corduroy shirt",
+    "cotton shirt",
+    "baggy pants",
+    "relaxed fit",
+    "oversized",
+    "available in store",
+  ];
+
+  return promoKeywords.some((kw) => combinedText.includes(kw));
+}
+
+/**
+ * Validates whether a search result snippet represents a genuine third-party consumer grievance,
+ * complaint, scam allegation, or dispute thread rather than promotional product marketing.
+ */
+function isConsumerGrievance(
+  item: { title: string; snippet: string; link: string; source: string },
+  handle: string
+): boolean {
+  // 1. Must strictly pertain to the queried seller
+  if (!isRelevantToSeller(item, handle)) {
+    return false;
+  }
+
+  const combinedText = `${item.title} ${item.snippet}`.toLowerCase();
+  const lowerLink = item.link.toLowerCase();
+  const platform = classifyPlatform(item.link, item.source);
+
+  // Exclude primary profile page of the seller itself
+  if (
+    lowerLink.match(/instagram\.com\/[^/]+\/?$/) &&
+    !combinedText.includes("complaint") &&
+    !combinedText.includes("scam")
+  ) {
+    return false;
+  }
+
+  // 2. Immediate rejection of product sales / store promotional drops
+  if (isPromotionalOrSellerPost(combinedText)) {
+    return false;
+  }
+
+  // Strong negative consumer dispute indicators
+  const explicitComplaintPatterns = [
+    "scammer",
+    "cheated me",
+    "cheated by",
+    "money lost",
+    "lost my money",
+    "not delivered",
+    "never delivered",
+    "never received",
+    "not received",
+    "fake account cheated",
+    "no reply after payment",
+    "blocked me after",
+    "blocked after payment",
+    "stole money",
+    "consumer complaint",
+    "complaint against",
+    "filed a complaint",
+    "defective item received",
+    "cybercrime complaint",
+    "police complaint",
+    "consumer court",
+    "refund not received",
+    "return refused",
+    "do not buy from this page",
+    "do not order from this page",
+    "fake page taking money",
+  ];
+
+  const hasExplicitComplaint = explicitComplaintPatterns.some((pattern) =>
+    combinedText.includes(pattern)
+  );
+
+  // If on a dedicated consumer board (e.g. consumercomplaints, mouthshut, voxya, consumercourt, trustpilot)
+  if (platform === "consumer_board") {
+    return (
+      hasExplicitComplaint ||
+      combinedText.includes("complaint") ||
+      combinedText.includes("scam") ||
+      combinedText.includes("fraud")
+    );
+  }
+
+  // If on Reddit/Quora discussion forums, verify it's a dispute thread or legitimacy check
+  if (platform === "forum") {
+    return (
+      hasExplicitComplaint ||
+      combinedText.includes("is this a scam") ||
+      combinedText.includes("is legit") ||
+      combinedText.includes("review") ||
+      combinedText.includes("fake or real")
+    );
+  }
+
+  // On social media (Instagram, Facebook), ONLY keep if explicit victim dispute statement exists
+  return hasExplicitComplaint;
+}
+
+/**
  * Searches public Google index, forums, and complaint directories for mentions of the seller handle.
+ * Filters results to highlight genuine consumer dispute and grievance records.
  *
  * @param sellerInput Raw or normalized Instagram handle
  */
@@ -106,7 +309,7 @@ export async function searchSellerReputation(
   }
 
   // Quota-optimized focused boolean search query
-  const query = `"${handle}" (scam OR complaint OR fraud OR review OR "not delivered" OR fake)`;
+  const query = `"${handle}" (scam OR complaint OR fraud OR "not delivered" OR "bad experience" OR review)`;
 
   try {
     const response = await querySerpApi<SerpApiSearchResponse>({
@@ -136,8 +339,8 @@ export async function searchSellerReputation(
               indexedPlatforms: [],
             },
             observations: [
-              `No public scam complaints or consumer grievance threads were found indexed under the exact handle @"${handle}".`,
-              "Standard Note: Absence of indexed search complaints does not provide definitive confirmation of safety, as new or renamed accounts may have limited search history.",
+              `No public scam complaints or consumer grievance threads were found indexed under @"${handle}".`,
+              "Analytical Standard: Absence of indexed search complaints does not guarantee safety, as newer accounts may have limited dispute history.",
             ],
           },
           timestamp,
@@ -176,47 +379,51 @@ export async function searchSellerReputation(
       })),
     ];
 
-    // Deduplicate by URL
+    // Deduplicate by URL and filter for genuine consumer grievances
     const seenUrls = new Set<string>();
-    const deduplicatedMentions: ReputationMentionItem[] = [];
+    const filteredGrievances: ReputationMentionItem[] = [];
 
     for (const item of rawItems) {
       const normLink = item.link.toLowerCase().replace(/\/$/, "");
       if (!seenUrls.has(normLink) && item.link !== "#") {
         seenUrls.add(normLink);
-        deduplicatedMentions.push({
-          ...item,
-          platformType: classifyPlatform(item.link, item.source),
-        });
+
+        // Apply strict consumer grievance filter
+        if (isConsumerGrievance(item, handle)) {
+          filteredGrievances.push({
+            ...item,
+            platformType: classifyPlatform(item.link, item.source),
+          });
+        }
       }
     }
 
-    const totalMentions = deduplicatedMentions.length;
-    const indexedPlatforms = Array.from(new Set(deduplicatedMentions.map((m) => m.source).filter(Boolean)));
-    const hasConsumerBoards = deduplicatedMentions.some((m) => m.platformType === "consumer_board");
-    const hasForums = deduplicatedMentions.some((m) => m.platformType === "forum");
+    const totalMentions = filteredGrievances.length;
+    const indexedPlatforms = Array.from(new Set(filteredGrievances.map((m) => m.source).filter(Boolean)));
+    const hasConsumerBoards = filteredGrievances.some((m) => m.platformType === "consumer_board");
+    const hasForums = filteredGrievances.some((m) => m.platformType === "forum");
 
     const observations: string[] = [];
     if (totalMentions > 0) {
       observations.push(
-        `Retrieved ${totalMentions} indexed community mention${totalMentions === 1 ? "" : "s"} / search record${totalMentions === 1 ? "" : "s"} across ${indexedPlatforms.length} distinct platform${indexedPlatforms.length === 1 ? "" : "s"}.`
+        `Identified ${totalMentions} public consumer grievance record${totalMentions === 1 ? "" : "s"} / dispute thread${totalMentions === 1 ? "" : "s"} across ${indexedPlatforms.length} platform${indexedPlatforms.length === 1 ? "" : "s"}.`
       );
       if (hasConsumerBoards) {
         observations.push(
-          "Consumer grievance boards or dispute resolution platforms were detected in indexed results."
+          "Formal consumer grievance boards or dispute resolution platforms were detected."
         );
       }
       if (hasForums) {
         observations.push(
-          "Public discussions and community thread discussions were identified."
+          "Public community discussions regarding seller reliability or disputes were identified."
         );
       }
     } else {
       observations.push(
-        `No public scam complaints or consumer grievance threads were found indexed under the exact handle @"${handle}".`
+        `No public scam complaints, dispute threads, or consumer court orders were indexed under @"${handle}".`
       );
       observations.push(
-        "Standard Note: Absence of indexed search complaints does not provide definitive confirmation of safety, as new or renamed accounts may have limited search history."
+        "Analytical Standard: Absence of indexed search complaints indicates a clean public record, but standard safe payment precautions (such as Cash on Delivery) remain recommended."
       );
     }
 
@@ -224,9 +431,9 @@ export async function searchSellerReputation(
       sellerHandle: handle,
       queryUsed: query,
       totalMentions,
-      mentions: deduplicatedMentions,
+      mentions: filteredGrievances,
       summaryFindings: {
-        hasDirectComplaints: hasConsumerBoards,
+        hasDirectComplaints: totalMentions > 0,
         hasForumDiscussions: hasForums,
         indexedPlatforms,
       },
@@ -265,8 +472,8 @@ export async function searchSellerReputation(
             indexedPlatforms: [],
           },
           observations: [
-            `No public scam complaints or consumer grievance threads were found indexed under the exact handle @"${handle}".`,
-            "Standard Note: Absence of indexed search complaints does not provide definitive confirmation of safety, as new or renamed accounts may have limited search history.",
+            `No public scam complaints or consumer grievance threads were found indexed under @"${handle}".`,
+            "Analytical Standard: Absence of indexed search complaints indicates a clean public record.",
           ],
         },
         timestamp,

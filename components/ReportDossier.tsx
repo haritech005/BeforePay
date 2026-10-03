@@ -35,10 +35,10 @@ interface ReportDossierProps {
 }
 
 export default function ReportDossier({
-  sellerHandle = "audiokraft_studio",
-  productName = "Noise-Cancelling Wireless Earbuds (Studio Edition)",
-  quotedPrice = "2,499",
-  previewUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuC1H8V5geou3DIicGlTH7oI_vwStKq_ULYS6351cdsJcdZ5VwFsMRMi7jNvzKYex8yqGjt924cPZVHDT29C1gmzJvmxYc7QHG0bDhp6o6_w8WU2bWab0MTpZTWzFE2Xsjd3wJaIHYc9S-phQ5NyCxT3zrQw4V8rn1MfzuwjY9gdIRGF72pm4OxGjs8elrnEG5nSVb7DUH57DijVqd2yLNZo8SuoXc7WKtj48Z65wQIrVlPJyRQ5QK2GVQ",
+  sellerHandle = "",
+  productName = "",
+  quotedPrice = "",
+  previewUrl = null,
   profileResult,
   lensResult,
   priceResult,
@@ -48,7 +48,12 @@ export default function ReportDossier({
 }: ReportDossierProps) {
   const [copied, setCopied] = useState(false);
 
-  const displayHandle = (sellerHandle || "seller").replace(/^@/, "");
+  const displayHandle =
+    (sellerHandle || "")
+      .trim()
+      .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+      .replace(/[/?#].*$/, "")
+      .replace(/^@/, "") || "seller";
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined" && navigator.clipboard) {
@@ -67,24 +72,25 @@ export default function ReportDossier({
   return (
     <div className="w-full flex flex-col gap-6 max-w-4xl mx-auto">
       {/* Top Utility Header */}
-      <div className="w-full bg-blue-50/70 py-3 px-4 sm:px-6 rounded-2xl border border-blue-200/70 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold text-slate-700">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-          <span className="font-mono text-slate-900 font-bold">CASE #BP-88421</span>
-          <span className="text-slate-300">•</span>
-          <span className="text-slate-600">
-            Generated on {new Date().toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}
+      <div className="w-full bg-slate-50 py-3 px-4 sm:px-6 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs font-medium text-slate-700">
+        <div className="flex items-center gap-3">
+          <span className="font-semibold text-slate-900">
+            Seller Check: @{displayHandle}
+          </span>
+          <span className="text-slate-400">•</span>
+          <span className="text-slate-500">
+            {new Date().toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}
           </span>
         </div>
 
         <div className="flex items-center gap-4">
           <button
             onClick={handlePrint}
-            className="hover:text-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer text-slate-700"
+            className="hover:text-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer text-slate-700 font-medium"
             type="button"
           >
             <PrintIcon className="w-4 h-4 text-slate-600" />
-            Print Dossier
+            Print Report
           </button>
         </div>
       </div>
@@ -97,7 +103,7 @@ export default function ReportDossier({
               {previewUrl ? (
                 <Image
                   src={previewUrl}
-                  alt="Target Product Thumbnail"
+                  alt="Product Thumbnail"
                   fill
                   className="object-cover"
                   unoptimized
@@ -111,21 +117,18 @@ export default function ReportDossier({
 
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-mono text-xs font-bold border border-blue-100">
-                  Target Product
-                </span>
                 <span className="text-blue-600 font-bold text-xs inline-flex items-center gap-1">
                   @{displayHandle}
                   <ExternalLinkIcon className="w-3 h-3" />
                 </span>
               </div>
 
-              <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
                 {productName || "Product Listing"}
               </h1>
               <p className="text-xs text-slate-500">
-                Seller Quoted Asking Price:{" "}
-                <span className="text-sm font-extrabold text-slate-900">
+                Seller Asking Price:{" "}
+                <span className="text-sm font-bold text-slate-900">
                   ₹{quotedPrice || "0"}
                 </span>
               </p>
@@ -133,11 +136,11 @@ export default function ReportDossier({
           </div>
 
           <div className="flex flex-col sm:items-end gap-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Investigation Status
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Status
             </span>
             <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-              Evidence Synthesized
+              Report Ready
             </span>
           </div>
         </div>

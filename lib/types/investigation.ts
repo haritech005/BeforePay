@@ -63,6 +63,9 @@ export interface SafetyChecklistItem {
  */
 export interface AIReportSynthesis {
   executiveSummary: string;
+  trustVerdictLevel?: "clean" | "caution" | "elevated_risk";
+  trustVerdictTitle?: string;
+  bottomLineRecommendation?: string;
   keyFindings: KeyFindingItem[];
   checklist: SafetyChecklistItem[];
   evidenceGrounded: boolean;

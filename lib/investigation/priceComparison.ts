@@ -82,28 +82,36 @@ export function formatCurrencyINR(amount: number): string {
   return `₹${Math.round(amount).toLocaleString("en-IN")}`;
 }
 
+export interface PriceComparisonOptions {
+  productName?: string;
+  quotedPrice: string | number;
+  lensKeywords?: string[];
+}
+
 /**
  * Dedicated function to search Google Shopping listings and filter for cheaper comparable alternatives.
- *
- * @param productName Name/keywords of the product listing
- * @param quotedPrice Input asking price quoted by the Instagram seller
+ * Supports searching by direct product name and/or candidate keywords discovered via Google Lens.
  */
 export async function compareProductPrices(
-  productName: string,
-  quotedPrice: string | number
+  input: string | PriceComparisonOptions,
+  quotedPriceArg?: string | number
 ): Promise<CheckResult<PriceComparisonData>> {
   const timestamp = new Date().toISOString();
-  const trimmedName = (productName || "").trim();
-  const numericQuotedPrice = parseNumericPrice(quotedPrice);
 
-  if (!trimmedName) {
-    return {
-      status: "no_results",
-      data: null,
-      message: "Please provide a product title or keywords to perform price comparison.",
-      timestamp,
-    };
+  let productName = "";
+  let quotedPrice: string | number = "";
+  let lensKeywords: string[] = [];
+
+  if (typeof input === "string") {
+    productName = input.trim();
+    quotedPrice = quotedPriceArg || "";
+  } else if (input) {
+    productName = (input.productName || "").trim();
+    quotedPrice = input.quotedPrice;
+    lensKeywords = input.lensKeywords || [];
   }
+
+  const numericQuotedPrice = parseNumericPrice(quotedPrice);
 
   if (numericQuotedPrice === null || numericQuotedPrice <= 0) {
     return {
@@ -114,31 +122,64 @@ export async function compareProductPrices(
     };
   }
 
-  try {
-    const response = await querySerpApi<SerpApiShoppingResponse>({
-      engine: "google_shopping",
-      q: trimmedName,
-      gl: "in",
-      hl: "en",
-    });
+  // Determine search queries
+  const queriesToRun: string[] = [];
+  if (productName) {
+    queriesToRun.push(productName);
+  }
+  for (const kw of lensKeywords) {
+    const trimmed = (kw || "").trim();
+    if (trimmed && !queriesToRun.includes(trimmed)) {
+      queriesToRun.push(trimmed);
+      if (queriesToRun.length >= 2) break; // Maximum 2 shopping queries
+    }
+  }
 
-    if (response.error) {
-      return {
-        status: "failed",
-        data: null,
-        message: response.error,
-        timestamp,
-        source: response.search_metadata?.google_shopping_url,
-      };
+  if (queriesToRun.length === 0) {
+    return {
+      status: "no_results",
+      data: null,
+      message: "Please provide a product title or upload a product photo to locate online market prices.",
+      timestamp,
+    };
+  }
+
+  try {
+    const rawResults: SerpApiShoppingItem[] = [];
+    let shoppingSourceUrl: string | undefined;
+
+    for (const query of queriesToRun) {
+      try {
+        const response = await querySerpApi<SerpApiShoppingResponse>({
+          engine: "google_shopping",
+          q: query,
+          gl: "in",
+          hl: "en",
+        });
+
+        if (response.search_metadata?.google_shopping_url && !shoppingSourceUrl) {
+          shoppingSourceUrl = response.search_metadata.google_shopping_url;
+        }
+
+        if (response.shopping_results) {
+          rawResults.push(...response.shopping_results);
+        }
+      } catch (qErr) {
+        console.warn(`Google shopping query warning for '${query}':`, qErr);
+      }
     }
 
-    const rawResults = response.shopping_results || [];
+    // Deduplicate by link or title
+    const seenLinks = new Set<string>();
     const allValidItems: ShoppingListingItem[] = [];
 
     for (const item of rawResults) {
       const title = (item.title || "").trim();
       const link = item.link || item.product_link || "#";
       const source = (item.source || "Online Merchant").trim();
+
+      if (!title || seenLinks.has(link)) continue;
+      seenLinks.add(link);
       
       let itemPriceNum = item.extracted_price;
       if (itemPriceNum === undefined && item.price) {
@@ -186,13 +227,15 @@ export async function compareProductPrices(
       ? Math.round((maximumSavingsAmount / numericQuotedPrice) * 100)
       : 0;
 
+    const displayName = productName || (queriesToRun[0] || "Identified Product");
     const observations: string[] = [];
+
     if (totalQualifyingCount > 0 && cheapestItem) {
       observations.push(
         `Found ${totalQualifyingCount} comparable listing${totalQualifyingCount === 1 ? "" : "s"} priced below the seller's asking price (${formatCurrencyINR(numericQuotedPrice)}).`
       );
       observations.push(
-        `Lowest comparable listing is available from ${cheapestItem.source} for ${formatCurrencyINR(cheapestItem.extractedPrice)}, offering up to ${maximumSavingsPercentage}% savings (${formatCurrencyINR(maximumSavingsAmount)}).`
+        `Lowest comparable listing is available from ${cheapestItem.source} for ${formatCurrencyINR(cheapestItem.extractedPrice)}, offering up to ${maximumSavingsPercentage}% savings (${formatCurrencyINR(maximumSavingsAmount)} less).`
       );
     } else {
       observations.push(
@@ -201,7 +244,7 @@ export async function compareProductPrices(
     }
 
     const data: PriceComparisonData = {
-      productName: trimmedName,
+      productName: displayName,
       quotedPrice: numericQuotedPrice,
       quotedPriceFormatted: formatCurrencyINR(numericQuotedPrice),
       cheaperListings,
@@ -217,7 +260,7 @@ export async function compareProductPrices(
       status: "success",
       data,
       timestamp,
-      source: response.search_metadata?.google_shopping_url,
+      source: shoppingSourceUrl,
     };
   } catch (err: unknown) {
     const errorMsg =

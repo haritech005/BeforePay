@@ -6,7 +6,9 @@ import Footer from "@/components/Footer";
 import InvestigationForm, {
   InvestigationFormData,
 } from "@/components/InvestigationForm";
-import InvestigationProgress from "@/components/InvestigationProgress";
+import InvestigationProgress, {
+  StepState,
+} from "@/components/InvestigationProgress";
 import ReportDossier from "@/components/ReportDossier";
 import {
   CheckResult,
@@ -30,6 +32,13 @@ export default function HomePage() {
       productName: "",
       quotedPrice: "",
     });
+
+  const [profileStatus, setProfileStatus] = useState<StepState>("pending");
+  const [lensStatus, setLensStatus] = useState<StepState>("pending");
+  const [priceStatus, setPriceStatus] = useState<StepState>("pending");
+  const [reputationStatus, setReputationStatus] = useState<StepState>("pending");
+  const [synthesisStatus, setSynthesisStatus] = useState<StepState>("pending");
+
   const [profileResult, setProfileResult] =
     useState<CheckResult<SellerProfileData> | null>(null);
   const [lensResult, setLensResult] =
@@ -46,54 +55,129 @@ export default function HomePage() {
     setCurrentView("progress");
     setIsLoading(true);
 
+    // Set initial loading states
+    setProfileStatus("loading");
+    setLensStatus("loading");
+    setPriceStatus("loading");
+    setReputationStatus("loading");
+    setSynthesisStatus("pending");
+
     try {
-      // Step 1: Run all 4 investigative data collection checks in parallel
+      // Step 1: Run all 4 investigative data collection checks concurrently
       const profilePromise = data.sellerHandle
         ? fetch("/api/seller-profile", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sellerHandle: data.sellerHandle }),
           })
-            .then((r) => r.json())
-            .catch((err) => ({
-              status: "failed" as const,
-              data: null,
-              message: err instanceof Error ? err.message : "Network error",
-              timestamp: new Date().toISOString(),
-            }))
+            .then(async (r) => {
+              const res = await r.json();
+              if (res.status === "success") {
+                setProfileStatus("completed");
+              } else if (res.status === "no_results") {
+                setProfileStatus("no_results");
+              } else {
+                setProfileStatus("failed");
+              }
+              return res;
+            })
+            .catch((err) => {
+              setProfileStatus("failed");
+              return {
+                status: "failed" as const,
+                data: null,
+                message: err instanceof Error ? err.message : "Network error",
+                timestamp: new Date().toISOString(),
+              };
+            })
         : Promise.resolve(null);
 
-      const lensPromise = data.previewUrl
-        ? fetch("/api/product-lens", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imageUrl: data.previewUrl }),
-          })
-            .then((r) => r.json())
-            .catch((err) => ({
-              status: "failed" as const,
-              data: null,
-              message: err instanceof Error ? err.message : "Network error",
-              timestamp: new Date().toISOString(),
-            }))
-        : Promise.resolve(null);
+      const lensPromise =
+        data.productImage || data.previewUrl
+          ? (() => {
+              let reqPromise: Promise<Response>;
+              if (data.productImage) {
+                const formData = new FormData();
+                formData.append("image", data.productImage);
+                reqPromise = fetch("/api/product-lens", {
+                  method: "POST",
+                  body: formData,
+                });
+              } else {
+                reqPromise = fetch("/api/product-lens", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ imageUrl: data.previewUrl }),
+                });
+              }
 
-      const pricePromise = data.productName && data.quotedPrice
-        ? fetch("/api/price-comparison", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              productName: data.productName,
-              quotedPrice: data.quotedPrice,
-            }),
-          })
-            .then((r) => r.json())
-            .catch((err) => ({
-              status: "failed" as const,
-              data: null,
-              message: err instanceof Error ? err.message : "Network error",
-              timestamp: new Date().toISOString(),
-            }))
+              return reqPromise
+                .then(async (r) => {
+                  const res = await r.json();
+                  if (res.status === "success") {
+                    setLensStatus("completed");
+                  } else if (res.status === "no_results") {
+                    setLensStatus("no_results");
+                  } else {
+                    setLensStatus("failed");
+                  }
+                  return res;
+                })
+                .catch((err) => {
+                  setLensStatus("failed");
+                  return {
+                    status: "failed" as const,
+                    data: null,
+                    message: err instanceof Error ? err.message : "Network error",
+                    timestamp: new Date().toISOString(),
+                  };
+                });
+            })()
+          : Promise.resolve(null);
+
+      const pricePromise = data.quotedPrice
+        ? (async () => {
+            let lensKeywords: string[] = [];
+            if (data.productImage || data.previewUrl) {
+              try {
+                const lensRes = await lensPromise;
+                if (lensRes?.data?.candidateProductTitles) {
+                  lensKeywords = lensRes.data.candidateProductTitles;
+                }
+              } catch (e) {
+                // If lens fails, continue with price comparison
+              }
+            }
+
+            try {
+              const res = await fetch("/api/price-comparison", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  productName: data.productName || "",
+                  quotedPrice: data.quotedPrice,
+                  lensKeywords,
+                }),
+              });
+              const json = await res.json();
+              if (json.status === "success") {
+                setPriceStatus("completed");
+              } else if (json.status === "no_results") {
+                setPriceStatus("no_results");
+              } else {
+                setPriceStatus("failed");
+              }
+              return json;
+            } catch (err) {
+              setPriceStatus("failed");
+              return {
+                status: "failed" as const,
+                data: null,
+                message: err instanceof Error ? err.message : "Network error",
+                timestamp: new Date().toISOString(),
+              };
+            }
+          })()
         : Promise.resolve(null);
 
       const reputationPromise = data.sellerHandle
@@ -102,13 +186,26 @@ export default function HomePage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sellerHandle: data.sellerHandle }),
           })
-            .then((r) => r.json())
-            .catch((err) => ({
-              status: "failed" as const,
-              data: null,
-              message: err instanceof Error ? err.message : "Network error",
-              timestamp: new Date().toISOString(),
-            }))
+            .then(async (r) => {
+              const res = await r.json();
+              if (res.status === "success") {
+                setReputationStatus("completed");
+              } else if (res.status === "no_results") {
+                setReputationStatus("no_results");
+              } else {
+                setReputationStatus("failed");
+              }
+              return res;
+            })
+            .catch((err) => {
+              setReputationStatus("failed");
+              return {
+                status: "failed" as const,
+                data: null,
+                message: err instanceof Error ? err.message : "Network error",
+                timestamp: new Date().toISOString(),
+              };
+            })
         : Promise.resolve(null);
 
       const [pResult, lResult, prResult, rResult] = await Promise.all([
@@ -124,6 +221,8 @@ export default function HomePage() {
       setReputationResult(rResult);
 
       // Step 2: Aggregate into typed InvestigationEvidence and trigger AI report synthesis
+      setSynthesisStatus("loading");
+
       const aggregatedEvidence: InvestigationEvidence = {
         sellerProfile: pResult || { status: "not_run", data: null },
         imageMatches: lResult || { status: "not_run", data: null },
@@ -147,9 +246,13 @@ export default function HomePage() {
         const synthJson = await synthRes.json();
         if (synthJson.status === "success" && synthJson.data) {
           setSynthesis(synthJson.data);
+          setSynthesisStatus("completed");
+        } else {
+          setSynthesisStatus("failed");
         }
       } catch (synthErr) {
-        console.warn("AI synthesis endpoint warning, falling back to client defaults", synthErr);
+        console.warn("AI synthesis endpoint warning, using client fallback", synthErr);
+        setSynthesisStatus("failed");
       }
     } catch (err: unknown) {
       setProfileResult({
@@ -160,10 +263,10 @@ export default function HomePage() {
       });
     } finally {
       setIsLoading(false);
-      // Allow user to view progress animation smoothly
+      // Allow brief moment for smooth transition
       setTimeout(() => {
         setCurrentView("report");
-      }, 1500);
+      }, 1000);
     }
   };
 
@@ -174,6 +277,11 @@ export default function HomePage() {
     setPriceResult(null);
     setReputationResult(null);
     setSynthesis(null);
+    setProfileStatus("pending");
+    setLensStatus("pending");
+    setPriceStatus("pending");
+    setReputationStatus("pending");
+    setSynthesisStatus("pending");
     setInvestigationData({
       sellerHandle: "",
       productImage: null,
@@ -206,6 +314,11 @@ export default function HomePage() {
             productName={investigationData.productName}
             quotedPrice={investigationData.quotedPrice}
             previewUrl={investigationData.previewUrl}
+            profileStatus={profileStatus}
+            lensStatus={lensStatus}
+            priceStatus={priceStatus}
+            reputationStatus={reputationStatus}
+            synthesisStatus={synthesisStatus}
             onCancel={handleNewInvestigation}
             onComplete={() => setCurrentView("report")}
           />

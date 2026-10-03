@@ -100,59 +100,29 @@ export default function InvestigationForm({
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
-      {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="inline-flex items-center gap-2">
-          <span className="font-mono text-xs text-blue-600 uppercase tracking-wider font-bold">
-            Public Evidence Search
-          </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-          <span className="text-xs font-semibold text-slate-600">
-            Instagram Commerce Verification
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 self-start sm:self-auto bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-          <ShieldCheckIcon className="w-4 h-4 text-emerald-600" />
-          <span className="text-xs text-slate-800 font-semibold">
-            Anonymous • Zero Retention
-          </span>
-        </div>
-      </div>
-
-      {/* Main Dossier Form Card */}
+      {/* Main Form Card */}
       <section className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold mb-3 border border-blue-100">
-            <ShieldCheckIcon className="w-4 h-4 text-blue-600" />
-            Seller Investigation Dossier
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
-            Investigate this seller before you pay.
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2">
+            Verify an Instagram seller before you pay
           </h1>
           <p className="text-sm text-slate-600 leading-relaxed">
-            Enter the Instagram seller&apos;s handle, upload the product photo, and
-            provide their asking price. We will query publicly available evidence to
-            help you make an informed decision.
+            Check account credibility, find matching product photos across the web, and compare prices on trusted stores.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-6">
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
           {/* Field 1: Instagram Seller Handle */}
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="seller-handle"
-                className="text-sm font-semibold text-slate-900 flex items-center gap-1"
-              >
-                Instagram Seller Handle or URL
-                <span aria-hidden="true" className="text-rose-600 font-bold">
-                  *
-                </span>
-              </label>
-              <span className="font-mono text-xs text-slate-500">
-                Public profile check
+            <label
+              htmlFor="seller-handle"
+              className="text-sm font-semibold text-slate-900 flex items-center gap-1"
+            >
+              Instagram Seller Handle or URL
+              <span aria-hidden="true" className="text-rose-600 font-bold">
+                *
               </span>
-            </div>
+            </label>
 
             <div className="relative flex items-center">
               <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
@@ -188,18 +158,11 @@ export default function InvestigationForm({
               )}
             </div>
 
-            {errors.sellerHandle ? (
-              <p className="text-xs text-rose-600 font-semibold flex items-center gap-1">
+            {errors.sellerHandle && (
+              <p className="text-xs text-rose-600 font-semibold flex items-center gap-1 mt-0.5">
                 <AlertCircleIcon className="w-3.5 h-3.5" />
                 {errors.sellerHandle}
               </p>
-            ) : (
-              <div className="flex items-center gap-1.5 mt-0.5 text-slate-500">
-                <GlobeIcon className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs">
-                  We check publicly available follower activity, posts, and bio signals.
-                </span>
-              </div>
             )}
           </div>
 
@@ -222,20 +185,15 @@ export default function InvestigationForm({
 
           {/* Field 3: Product Name or Keywords (Optional) */}
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="product-name"
-                className="text-sm font-semibold text-slate-900 flex items-center gap-1.5"
-              >
-                Product name or keywords
-                <span className="text-xs text-slate-400 font-normal">
-                  (Optional)
-                </span>
-              </label>
-              <span className="text-xs text-slate-500">
-                Improves price matching
+            <label
+              htmlFor="product-name"
+              className="text-sm font-semibold text-slate-900 flex items-center gap-1.5"
+            >
+              Product Name or Keywords
+              <span className="text-xs text-slate-400 font-normal">
+                (Optional)
               </span>
-            </div>
+            </label>
             <input
               id="product-name"
               name="product-name"
@@ -247,28 +205,22 @@ export default function InvestigationForm({
                   productName: e.target.value,
                 }))
               }
-              placeholder="e.g. Leather Crossbody Bag, Wireless Earbuds Pro"
+              placeholder="e.g. Linen Striped Shirt, Korean Baggy Pants"
               className="w-full bg-white text-slate-900 text-sm px-3.5 py-3 rounded-xl border border-slate-300 hover:border-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
             />
-            <span className="text-xs text-slate-500">
-              Helps Google Shopping locate comparable listings and check market prices.
-            </span>
           </div>
 
           {/* Field 4: Quoted Price */}
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="seller-price"
-                className="text-sm font-semibold text-slate-900 flex items-center gap-1"
-              >
-                Seller&apos;s Quoted Price
-                <span aria-hidden="true" className="text-rose-600 font-bold">
-                  *
-                </span>
-              </label>
-              <span className="font-mono text-xs text-slate-500">INR (₹)</span>
-            </div>
+            <label
+              htmlFor="seller-price"
+              className="text-sm font-semibold text-slate-900 flex items-center gap-1"
+            >
+              Seller&apos;s Quoted Price (₹)
+              <span aria-hidden="true" className="text-rose-600 font-bold">
+                *
+              </span>
+            </label>
             <div className="relative flex items-center max-w-xs">
               <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-900 font-bold text-base">
                 ₹
@@ -279,7 +231,7 @@ export default function InvestigationForm({
                 type="text"
                 value={formData.quotedPrice}
                 onChange={handlePriceChange}
-                placeholder="1999"
+                placeholder="780"
                 className={`w-full bg-white text-slate-900 text-sm pl-8 pr-4 py-3 rounded-xl border shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all ${
                   errors.quotedPrice
                     ? "border-rose-300 bg-rose-50/20 focus:ring-rose-500"
@@ -287,20 +239,16 @@ export default function InvestigationForm({
                 }`}
               />
             </div>
-            {errors.quotedPrice ? (
-              <p className="text-xs text-rose-600 font-semibold flex items-center gap-1">
+            {errors.quotedPrice && (
+              <p className="text-xs text-rose-600 font-semibold flex items-center gap-1 mt-0.5">
                 <AlertCircleIcon className="w-3.5 h-3.5" />
                 {errors.quotedPrice}
-              </p>
-            ) : (
-              <p className="text-xs text-slate-500">
-                We will filter online stores to find cheaper alternatives below this price.
               </p>
             )}
           </div>
 
           {/* Submit Action */}
-          <div className="pt-2 flex flex-col gap-3">
+          <div className="pt-2">
             <button
               type="submit"
               disabled={isLoading}
@@ -328,23 +276,15 @@ export default function InvestigationForm({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  <span>Querying Public Sources...</span>
+                  <span>Checking seller...</span>
                 </>
               ) : (
                 <>
-                  <span>Start Investigation</span>
+                  <span>Check Seller</span>
                   <ArrowRightIcon className="w-4 h-4" />
                 </>
               )}
             </button>
-
-            <div className="flex items-start gap-2 text-slate-500 pt-1">
-              <LockIcon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-              <p className="text-xs leading-relaxed">
-                Your inputs and images are used only for this investigation and are
-                never retained or shared.
-              </p>
-            </div>
           </div>
         </form>
       </section>

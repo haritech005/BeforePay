@@ -1,7 +1,7 @@
 import { SerpApiBaseParams, SerpApiError, SerpApiErrorKind } from "./types";
 
 const SERPAPI_ENDPOINT = "https://serpapi.com/search.json";
-const DEFAULT_TIMEOUT_MS = 15000;
+const DEFAULT_TIMEOUT_MS = 25000;
 
 /**
  * Validates and retrieves the server-side SERPAPI_API_KEY environment variable.
