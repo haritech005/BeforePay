@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Internal specifications and agent tracking files
+architecture.md
+IMPLEMENTATION_STATUS.md
+prd.md
+CLAUDE.md
+AGENTS.md
+scratch/
