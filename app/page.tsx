@@ -8,7 +8,11 @@ import InvestigationForm, {
 } from "@/components/InvestigationForm";
 import InvestigationProgress from "@/components/InvestigationProgress";
 import ReportDossier from "@/components/ReportDossier";
-import { CheckResult } from "@/lib/types/investigation";
+import {
+  CheckResult,
+  InvestigationEvidence,
+  AIReportSynthesis,
+} from "@/lib/types/investigation";
 import { SellerProfileData } from "@/lib/investigation/sellerProfile";
 import { LensInvestigationData } from "@/lib/investigation/productLens";
 import { PriceComparisonData } from "@/lib/investigation/priceComparison";
@@ -34,6 +38,7 @@ export default function HomePage() {
     useState<CheckResult<PriceComparisonData> | null>(null);
   const [reputationResult, setReputationResult] =
     useState<CheckResult<SellerReputationData> | null>(null);
+  const [synthesis, setSynthesis] = useState<AIReportSynthesis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFormSubmit = async (data: InvestigationFormData) => {
@@ -42,7 +47,7 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
-      // Run Phase 3 (Seller Profile), Phase 4 (Product Lens), Phase 5 (Price Comparison), and Phase 6 (Reputation) in parallel
+      // Step 1: Run all 4 investigative data collection checks in parallel
       const profilePromise = data.sellerHandle
         ? fetch("/api/seller-profile", {
             method: "POST",
@@ -112,10 +117,40 @@ export default function HomePage() {
         pricePromise,
         reputationPromise,
       ]);
+
       setProfileResult(pResult);
       setLensResult(lResult);
       setPriceResult(prResult);
       setReputationResult(rResult);
+
+      // Step 2: Aggregate into typed InvestigationEvidence and trigger AI report synthesis
+      const aggregatedEvidence: InvestigationEvidence = {
+        sellerProfile: pResult || { status: "not_run", data: null },
+        imageMatches: lResult || { status: "not_run", data: null },
+        priceComparison: prResult || { status: "not_run", data: null },
+        reputationSearch: rResult || { status: "not_run", data: null },
+        targetContext: {
+          sellerHandle: data.sellerHandle,
+          productName: data.productName,
+          quotedPrice: data.quotedPrice,
+          previewUrl: data.previewUrl,
+        },
+        executedAt: new Date().toISOString(),
+      };
+
+      try {
+        const synthRes = await fetch("/api/synthesize-report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(aggregatedEvidence),
+        });
+        const synthJson = await synthRes.json();
+        if (synthJson.status === "success" && synthJson.data) {
+          setSynthesis(synthJson.data);
+        }
+      } catch (synthErr) {
+        console.warn("AI synthesis endpoint warning, falling back to client defaults", synthErr);
+      }
     } catch (err: unknown) {
       setProfileResult({
         status: "failed",
@@ -138,6 +173,7 @@ export default function HomePage() {
     setLensResult(null);
     setPriceResult(null);
     setReputationResult(null);
+    setSynthesis(null);
     setInvestigationData({
       sellerHandle: "",
       productImage: null,
@@ -186,6 +222,7 @@ export default function HomePage() {
             lensResult={lensResult}
             priceResult={priceResult}
             reputationResult={reputationResult}
+            synthesis={synthesis}
             onNewInvestigation={handleNewInvestigation}
           />
         )}

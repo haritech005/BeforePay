@@ -920,7 +920,7 @@ End-to-end tests or a documented manual test report.
 Updated README.
 Phase completion gate
 
-The application must complete the full local workflow using real API responses and the local model, subject to service availability.
+The application must complete the full local workflow using real API responses and the local model, subject to service availability with existing frontend design connect all this.
 
 STOP. Wait for approval before starting Phase 9.
 

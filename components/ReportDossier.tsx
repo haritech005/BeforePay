@@ -6,18 +6,19 @@ import { SellerProfileData } from "@/lib/investigation/sellerProfile";
 import { LensInvestigationData } from "@/lib/investigation/productLens";
 import { PriceComparisonData } from "@/lib/investigation/priceComparison";
 import { SellerReputationData } from "@/lib/investigation/sellerReputation";
-import { CheckResult } from "@/lib/types/investigation";
+import { CheckResult, AIReportSynthesis } from "@/lib/types/investigation";
+import InvestigationSummaryCard from "./InvestigationSummaryCard";
 import SellerProfileCard from "./SellerProfileCard";
 import ProductLensCard from "./ProductLensCard";
 import PriceComparisonCard from "./PriceComparisonCard";
 import SellerReputationCard from "./SellerReputationCard";
+import BuyerChecklistCard from "./BuyerChecklistCard";
 import {
   ShieldCheckIcon,
   ExternalLinkIcon,
   PrintIcon,
   ShareIcon,
   SearchIcon,
-  AlertCircleIcon,
 } from "./Icons";
 
 interface ReportDossierProps {
@@ -29,6 +30,7 @@ interface ReportDossierProps {
   lensResult?: CheckResult<LensInvestigationData> | null;
   priceResult?: CheckResult<PriceComparisonData> | null;
   reputationResult?: CheckResult<SellerReputationData> | null;
+  synthesis?: AIReportSynthesis | null;
   onNewInvestigation?: () => void;
 }
 
@@ -41,6 +43,7 @@ export default function ReportDossier({
   lensResult,
   priceResult,
   reputationResult,
+  synthesis,
   onNewInvestigation,
 }: ReportDossierProps) {
   const [copied, setCopied] = useState(false);
@@ -153,78 +156,11 @@ export default function ReportDossier({
         </div>
       </section>
 
-      {/* SECTION 1: Investigation Summary */}
-      <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              01 // Key Findings
-            </span>
-            <span className="text-slate-300">/</span>
-            <h2 className="text-base font-bold text-slate-900">
-              Investigation Summary
-            </h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-slate-50 flex items-start gap-3 border border-slate-200/80">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold text-xs">
-              ₹
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-slate-900">
-                Cheaper Online Listings Found
-              </span>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Comparable items with verified brand warranties are available at lower prices on major e-commerce platforms.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 flex items-start gap-3 border border-slate-200/80">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-              <SearchIcon className="w-4 h-4" />
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-slate-900">
-                Visual Matches on Other Sites
-              </span>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Google Lens identified visually identical product photos on external wholesale and retail catalogs.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 flex items-start gap-3 border border-slate-200/80">
-            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-              <AlertCircleIcon className="w-4 h-4" />
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-slate-900">
-                Account Age &amp; Engagement
-              </span>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Profile signals indicate public follower counts and recent post activity.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 flex items-start gap-3 border border-slate-200/80">
-            <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-              <ShieldCheckIcon className="w-4 h-4" />
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-slate-900">
-                Public Records
-              </span>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                No formal consumer court orders were indexed. Review community forum discussions below.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* SECTION 1: Investigation Summary (AI Synthesis) */}
+      <InvestigationSummaryCard
+        synthesis={synthesis}
+        sellerHandle={sellerHandle}
+      />
 
       {/* SECTION 2: Live / Evaluated Seller Profile Signals */}
       <SellerProfileCard
@@ -252,69 +188,9 @@ export default function ReportDossier({
       />
 
       {/* SECTION 6: "Before You Pay" Practical Recommendations */}
-      <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              06 // Checklist
-            </span>
-            <span className="text-slate-300">/</span>
-            <h2 className="text-base font-bold text-slate-900">
-              &quot;Before You Pay&quot; Buyer Safety Checklist
-            </h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
-              1
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-slate-900">Payment Protection</span>
-              <span className="text-xs text-slate-600 leading-relaxed">
-                Avoid direct UPI or wire transfers to personal accounts. Insist on Cash on Delivery (COD) or escrow payment gateways.
-              </span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
-              2
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-slate-900">Proof of Physical Possession</span>
-              <span className="text-xs text-slate-600 leading-relaxed">
-                Ask the seller for a 5-second video holding the actual product with today&apos;s date written on paper.
-              </span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
-              3
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-slate-900">Return &amp; Replacement Policy</span>
-              <span className="text-xs text-slate-600 leading-relaxed">
-                Verify clear, written policies for damaged shipments or replacement terms before transferring funds.
-              </span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
-              4
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-slate-900">Business Identity</span>
-              <span className="text-xs text-slate-600 leading-relaxed">
-                Request a verifiable business address, active customer support contact, or registered GSTIN where applicable.
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <BuyerChecklistCard
+        checklist={synthesis?.checklist}
+      />
 
       {/* SECTION 7: Action Bar */}
       <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
