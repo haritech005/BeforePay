@@ -5,10 +5,12 @@ import Image from "next/image";
 import { SellerProfileData } from "@/lib/investigation/sellerProfile";
 import { LensInvestigationData } from "@/lib/investigation/productLens";
 import { PriceComparisonData } from "@/lib/investigation/priceComparison";
+import { SellerReputationData } from "@/lib/investigation/sellerReputation";
 import { CheckResult } from "@/lib/types/investigation";
 import SellerProfileCard from "./SellerProfileCard";
 import ProductLensCard from "./ProductLensCard";
 import PriceComparisonCard from "./PriceComparisonCard";
+import SellerReputationCard from "./SellerReputationCard";
 import {
   ShieldCheckIcon,
   ExternalLinkIcon,
@@ -26,6 +28,7 @@ interface ReportDossierProps {
   profileResult?: CheckResult<SellerProfileData> | null;
   lensResult?: CheckResult<LensInvestigationData> | null;
   priceResult?: CheckResult<PriceComparisonData> | null;
+  reputationResult?: CheckResult<SellerReputationData> | null;
   onNewInvestigation?: () => void;
 }
 
@@ -37,6 +40,7 @@ export default function ReportDossier({
   profileResult,
   lensResult,
   priceResult,
+  reputationResult,
   onNewInvestigation,
 }: ReportDossierProps) {
   const [copied, setCopied] = useState(false);
@@ -242,49 +246,10 @@ export default function ReportDossier({
       />
 
       {/* SECTION 5: Public Discussions & Reputation */}
-      <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-blue-600 uppercase font-bold tracking-wider">
-              05 // Reputation
-            </span>
-            <span className="text-slate-300">/</span>
-            <h2 className="text-base font-bold text-slate-900">
-              Public Discussions &amp; Forum Mentions
-            </h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-3">
-            <div>
-              <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
-                Reddit · r/InstaShoppingIndia
-              </span>
-              <p className="text-xs text-slate-800 italic pt-2 leading-relaxed">
-                &quot;Has anyone bought from @{displayHandle}? Ordered 2 weeks ago, no tracking number received yet.&quot;
-              </p>
-            </div>
-            <a href="#reddit" className="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1 pt-2 border-t border-slate-200">
-              Open Reddit thread <ExternalLinkIcon className="w-3 h-3" />
-            </a>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-3">
-            <div>
-              <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
-                X / Twitter Search
-              </span>
-              <p className="text-xs text-slate-800 italic pt-2 leading-relaxed">
-                &quot;Looking for reviews on @{displayHandle} earbuds before paying via GPay.&quot;
-              </p>
-            </div>
-            <a href="#twitter" className="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1 pt-2 border-t border-slate-200">
-              View mention search <ExternalLinkIcon className="w-3 h-3" />
-            </a>
-          </div>
-        </div>
-      </section>
+      <SellerReputationCard
+        reputationResult={reputationResult}
+        sellerHandle={sellerHandle}
+      />
 
       {/* SECTION 6: "Before You Pay" Practical Recommendations */}
       <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">

@@ -12,6 +12,7 @@ import { CheckResult } from "@/lib/types/investigation";
 import { SellerProfileData } from "@/lib/investigation/sellerProfile";
 import { LensInvestigationData } from "@/lib/investigation/productLens";
 import { PriceComparisonData } from "@/lib/investigation/priceComparison";
+import { SellerReputationData } from "@/lib/investigation/sellerReputation";
 
 export default function HomePage() {
   const [currentView, setCurrentView] = useState<"form" | "progress" | "report">(
@@ -31,6 +32,8 @@ export default function HomePage() {
     useState<CheckResult<LensInvestigationData> | null>(null);
   const [priceResult, setPriceResult] =
     useState<CheckResult<PriceComparisonData> | null>(null);
+  const [reputationResult, setReputationResult] =
+    useState<CheckResult<SellerReputationData> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFormSubmit = async (data: InvestigationFormData) => {
@@ -39,7 +42,7 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
-      // Run Phase 3 (Seller Profile), Phase 4 (Product Lens), and Phase 5 (Price Comparison) in parallel
+      // Run Phase 3 (Seller Profile), Phase 4 (Product Lens), Phase 5 (Price Comparison), and Phase 6 (Reputation) in parallel
       const profilePromise = data.sellerHandle
         ? fetch("/api/seller-profile", {
             method: "POST",
@@ -88,14 +91,31 @@ export default function HomePage() {
             }))
         : Promise.resolve(null);
 
-      const [pResult, lResult, prResult] = await Promise.all([
+      const reputationPromise = data.sellerHandle
+        ? fetch("/api/seller-reputation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sellerHandle: data.sellerHandle }),
+          })
+            .then((r) => r.json())
+            .catch((err) => ({
+              status: "failed" as const,
+              data: null,
+              message: err instanceof Error ? err.message : "Network error",
+              timestamp: new Date().toISOString(),
+            }))
+        : Promise.resolve(null);
+
+      const [pResult, lResult, prResult, rResult] = await Promise.all([
         profilePromise,
         lensPromise,
         pricePromise,
+        reputationPromise,
       ]);
       setProfileResult(pResult);
       setLensResult(lResult);
       setPriceResult(prResult);
+      setReputationResult(rResult);
     } catch (err: unknown) {
       setProfileResult({
         status: "failed",
@@ -117,6 +137,7 @@ export default function HomePage() {
     setProfileResult(null);
     setLensResult(null);
     setPriceResult(null);
+    setReputationResult(null);
     setInvestigationData({
       sellerHandle: "",
       productImage: null,
@@ -164,6 +185,7 @@ export default function HomePage() {
             profileResult={profileResult}
             lensResult={lensResult}
             priceResult={priceResult}
+            reputationResult={reputationResult}
             onNewInvestigation={handleNewInvestigation}
           />
         )}
