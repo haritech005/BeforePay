@@ -20,6 +20,15 @@ export interface SellerProfileData {
     hasExternalLink: boolean;
     isPrivateAccount: boolean;
     isVerifiedBadge: boolean;
+    isLowFollowers: boolean;
+    hasNoCodPolicy: boolean;
+    hasNoReturnPolicy: boolean;
+    isDirectWhatsAppOnly: boolean;
+    impersonationRisk: "high" | "medium" | "low";
+    suspectedCloneDetails?: {
+      suspectedOfficialHandle?: string;
+      reason: string;
+    };
     accountNotes: string[];
   };
 }
@@ -154,13 +163,44 @@ export async function fetchSellerProfile(
     const isProfessional = Boolean(pr.is_professional_account);
     const bioText = pr.biography || "";
     const externalLink = pr.external_url || (pr.bio_links && pr.bio_links[0]?.url);
+    const followers = pr.followers || 0;
+
+    const lowerBio = bioText.toLowerCase();
+    const hasNoCodPolicy =
+      lowerBio.includes("cod not available") ||
+      lowerBio.includes("no cod") ||
+      lowerBio.includes("prepaid only") ||
+      lowerBio.includes("advance payment") ||
+      lowerBio.includes("no cash on delivery");
+    const hasNoReturnPolicy =
+      lowerBio.includes("no return") ||
+      lowerBio.includes("return exchange") ||
+      lowerBio.includes("no exchange") ||
+      lowerBio.includes("no refund") ||
+      lowerBio.includes("no replacement");
+    const isDirectWhatsAppOnly =
+      Boolean(
+        externalLink?.includes("wa.me") ||
+        externalLink?.includes("whatsapp") ||
+        lowerBio.includes("whatsapp")
+      ) &&
+      !externalLink?.match(
+        /https?:\/\/(www\.)?(myntra|amazon|flipkart|ajio|meesho|tira|[a-z0-9-]+\.(com|in|store|shop|co|org|net))/i
+      );
+    const isLowFollowers = followers < 500;
+
+    let impersonationRisk: "high" | "medium" | "low" = "low";
+    let suspectedCloneDetails:
+      | { suspectedOfficialHandle?: string; reason: string }
+      | undefined;
 
     const accountNotes: string[] = [];
+
     if (isPrivate) {
       accountNotes.push("Account is set to private. Product listings and customer interactions cannot be publicly reviewed.");
     }
     if (isVerified) {
-      accountNotes.push("Profile holds an Instagram verified badge.");
+      accountNotes.push("Profile holds an official Instagram verified badge.");
     }
     if (isProfessional) {
       accountNotes.push("Account is registered as a professional/business creator profile.");
@@ -169,11 +209,88 @@ export async function fetchSellerProfile(
       accountNotes.push("No external verified website or checkout link listed in bio.");
     }
 
+    if (isLowFollowers) {
+      accountNotes.push(`Low follower count (${followers} followers). Higher risk of newly created or clone accounts.`);
+      if (hasNoCodPolicy || isDirectWhatsAppOnly) {
+        impersonationRisk = "high";
+        accountNotes.push("High Risk Payment Terms: Page refuses Cash on Delivery and directs all orders to private WhatsApp.");
+      } else {
+        impersonationRisk = "medium";
+      }
+    }
+
+    if (hasNoCodPolicy) {
+      accountNotes.push("Bio specifies 'COD Not Available' — 100% advance pre-payment required.");
+    }
+    if (hasNoReturnPolicy) {
+      accountNotes.push("Bio specifies no returns or exchanges.");
+    }
+
+    // Check for brand impersonation / duplicate official accounts if account has low followers (< 2,000)
+    if (followers < 2000) {
+      try {
+        const brandQuery = (pr.full_name || handle)
+          .replace(/[._-]/g, " ")
+          .replace(/\b(sarees?|clothing|store|shop|official|in|bangalore|delhi|mumbai)\b/gi, "")
+          .trim();
+
+        if (brandQuery.length >= 4) {
+          const cloneSearch = await querySerpApi<{
+            organic_results?: Array<{ title?: string; link?: string; snippet?: string }>;
+          }>(
+            {
+              engine: "google",
+              q: `site:instagram.com "${brandQuery}" -inurl:${handle}`,
+              gl: "in",
+              hl: "en",
+              num: 5,
+            },
+            6000
+          );
+
+          if (cloneSearch.organic_results && cloneSearch.organic_results.length > 0) {
+            for (const item of cloneSearch.organic_results) {
+              const itemTitle = (item.title || "").toLowerCase();
+              const itemSnippet = (item.snippet || "").toLowerCase();
+              const itemLink = item.link || "";
+
+              // Check if another profile for this brand has a follower count over 5,000
+              const followerMatch = (itemTitle + " " + itemSnippet).match(/([0-9.,]+)\s*([km])?\s*followers/i);
+              let discoveredFollowers = 0;
+              if (followerMatch) {
+                const num = parseFloat(followerMatch[1].replace(/,/g, ""));
+                const multiplier = followerMatch[2]?.toLowerCase() === "m" ? 1_000_000 : followerMatch[2]?.toLowerCase() === "k" ? 1_000 : 1;
+                discoveredFollowers = num * multiplier;
+              }
+
+              if (discoveredFollowers > 5000 && discoveredFollowers > followers * 10) {
+                const handleMatch = itemLink.match(/instagram\.com\/([a-zA-Z0-9._]+)/i);
+                const officialHandle = handleMatch ? handleMatch[1] : brandQuery;
+
+                impersonationRisk = "high";
+                suspectedCloneDetails = {
+                  suspectedOfficialHandle: officialHandle,
+                  reason: `Official account found (@${officialHandle} with ${discoveredFollowers.toLocaleString("en-IN")} followers) compared to queried account (${followers} followers).`,
+                };
+                accountNotes.push(
+                  `Suspected Clone: Found official brand page (@${officialHandle} with ~${discoveredFollowers.toLocaleString("en-IN")} followers). This page (@${handle}) may be an unverified duplicate.`
+                );
+                break;
+              }
+            }
+          }
+        }
+      } catch (cloneErr) {
+        // Non-blocking duplicate search error
+        console.warn("Clone check non-blocking warning:", cloneErr);
+      }
+    }
+
     const sellerData: SellerProfileData = {
       username: pr.username || handle,
       fullName: pr.full_name,
       biography: bioText,
-      followersCount: pr.followers || 0,
+      followersCount: followers,
       followingCount: pr.following || 0,
       postsCount: postsNum,
       isVerified,
@@ -187,6 +304,12 @@ export async function fetchSellerProfile(
         hasExternalLink: Boolean(externalLink),
         isPrivateAccount: isPrivate,
         isVerifiedBadge: isVerified,
+        isLowFollowers,
+        hasNoCodPolicy,
+        hasNoReturnPolicy,
+        isDirectWhatsAppOnly,
+        impersonationRisk,
+        suspectedCloneDetails,
         accountNotes,
       },
     };

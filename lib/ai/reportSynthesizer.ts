@@ -65,18 +65,45 @@ export function generateDeterministicReport(evidence: InvestigationEvidence): AI
     });
   }
 
-  // 3. Profile Credibility
+  // 3. Profile Credibility & Impersonation Risk
   if (sellerProfile?.status === "success" && sellerProfile.data) {
     const p = sellerProfile.data;
     const isEstablished = p.followersCount >= 5000 && !p.isPrivate;
-    keyFindings.push({
-      category: "profile",
-      title: isEstablished
-        ? `Established Account (${p.followersCount.toLocaleString("en-IN")} Followers)`
-        : `Public Account (${p.followersCount.toLocaleString("en-IN")} Followers)`,
-      detail: `Account is ${p.isPrivate ? "private" : "public"} with ${p.postsCount} recent indexed posts. ${p.externalUrl ? `Bio links to official store/contact: ${p.externalUrl}.` : "No external website linked in bio."}`,
-      severity: p.isPrivate || !p.externalUrl ? "info" : "neutral",
-    });
+    const isLowFollowers = p.signals?.isLowFollowers || p.followersCount < 500;
+    const hasNoCod = p.signals?.hasNoCodPolicy;
+    const isClone = p.signals?.impersonationRisk === "high" || Boolean(p.signals?.suspectedCloneDetails);
+
+    if (isClone && p.signals?.suspectedCloneDetails) {
+      keyFindings.push({
+        category: "profile",
+        title: "Suspected Duplicate / Clone Account",
+        detail: `Found an official brand page (@${p.signals.suspectedCloneDetails.suspectedOfficialHandle}) with substantially more followers. Queried account (@${handle}) has only ${p.followersCount.toLocaleString("en-IN")} followers.`,
+        severity: "warning",
+      });
+    } else if (isLowFollowers && hasNoCod) {
+      keyFindings.push({
+        category: "profile",
+        title: `High Risk Account Signals (${p.followersCount.toLocaleString("en-IN")} Followers)`,
+        detail: `Newly created or low-follower account enforcing strict pre-payment (No COD) and direct WhatsApp ordering. High risk of fraud.`,
+        severity: "warning",
+      });
+    } else if (isLowFollowers) {
+      keyFindings.push({
+        category: "profile",
+        title: `Low Follower Count (${p.followersCount.toLocaleString("en-IN")} Followers)`,
+        detail: `Account has limited public presence (${p.postsCount} posts). Verify physical stock and seller identity before making high-value transfers.`,
+        severity: "info",
+      });
+    } else {
+      keyFindings.push({
+        category: "profile",
+        title: isEstablished
+          ? `Established Account (${p.followersCount.toLocaleString("en-IN")} Followers)`
+          : `Public Account (${p.followersCount.toLocaleString("en-IN")} Followers)`,
+        detail: `Account is ${p.isPrivate ? "private" : "public"} with ${p.postsCount} recent indexed posts. ${p.externalUrl ? `Bio links to official store/contact: ${p.externalUrl}.` : "No external website linked in bio."}`,
+        severity: p.isPrivate || !p.externalUrl ? "info" : "neutral",
+      });
+    }
   } else {
     keyFindings.push({
       category: "profile",
@@ -87,16 +114,28 @@ export function generateDeterministicReport(evidence: InvestigationEvidence): AI
   }
 
   // 4. Reputation & Grievance History
+  const hasImpersonationAlerts =
+    reputationSearch?.status === "success" &&
+    reputationSearch.data &&
+    Boolean(reputationSearch.data.summaryFindings.hasImpersonationAlerts);
+
   const hasComplaints =
     reputationSearch?.status === "success" &&
     reputationSearch.data &&
     reputationSearch.data.summaryFindings.hasDirectComplaints;
 
-  if (hasComplaints && reputationSearch?.data) {
+  if (hasImpersonationAlerts && reputationSearch?.data) {
+    keyFindings.push({
+      category: "reputation",
+      title: "Public Scam & Impersonation Alert",
+      detail: `Public notices or brand warnings detected: Scammers frequently clone this brand's media to solicit advance payments on WhatsApp.`,
+      severity: "warning",
+    });
+  } else if (hasComplaints && reputationSearch?.data) {
     keyFindings.push({
       category: "reputation",
       title: "Consumer Grievance Threads Mentioned",
-      detail: `Found discussion threads referencing customer delivery or service issues. Review community discussions below carefully.`,
+      detail: `Found discussion threads referencing customer delivery, non-fulfillment, or payment issues. Review community discussions below carefully.`,
       severity: "warning",
     });
   } else if (
@@ -114,7 +153,7 @@ export function generateDeterministicReport(evidence: InvestigationEvidence): AI
     keyFindings.push({
       category: "reputation",
       title: "Clean Public Track Record",
-      detail: `No consumer court orders, scam alerts, or unresolved complaint threads were found indexed under @"${handle}".`,
+      detail: `No consumer court orders or unresolved complaint threads were found indexed under @"${handle}".`,
       severity: "neutral",
     });
   }
@@ -125,21 +164,53 @@ export function generateDeterministicReport(evidence: InvestigationEvidence): AI
   let executiveSummary = "";
   let bottomLineRecommendation = "";
 
-  if (hasComplaints) {
+  const pData = sellerProfile?.data;
+  const isClone =
+    pData?.signals?.impersonationRisk === "high" ||
+    Boolean(pData?.signals?.suspectedCloneDetails) ||
+    hasImpersonationAlerts;
+  const isHighRiskTerms =
+    Boolean(pData?.signals?.isLowFollowers) &&
+    (Boolean(pData?.signals?.hasNoCodPolicy) || Boolean(pData?.signals?.isDirectWhatsAppOnly));
+
+  if (isClone) {
+    trustVerdictLevel = "elevated_risk";
+    trustVerdictTitle = "HIGH RISK — SUSPECTED FAKE / IMPERSONATION ACCOUNT";
+    executiveSummary = `CRITICAL WARNING: This account (@${handle}) shows high-risk duplicate/clone signatures. ${
+      pData?.signals?.suspectedCloneDetails
+        ? pData.signals.suspectedCloneDetails.reason
+        : ""
+    } ${
+      hasImpersonationAlerts
+        ? "Public scam alerts warn that fraudulent accounts copy this brand to solicit advance WhatsApp payments."
+        : ""
+    } It has only ${pData?.followersCount || 0} followers and strictly enforces upfront pre-payment.`;
+    bottomLineRecommendation =
+      "DO NOT TRANSFER MONEY. This account is strongly suspected to be a fake duplicate page mimicking a legitimate brand. Verify the official brand profile before paying.";
+  } else if (isHighRiskTerms) {
+    trustVerdictLevel = "elevated_risk";
+    trustVerdictTitle = "HIGH RISK — UNVERIFIED ACCOUNT WITH NO COD";
+    executiveSummary = `@${handle} has very low follower count (${pData?.followersCount || 0} followers), lacks an official domain checkout, and enforces 'No COD' with direct WhatsApp payments. Unverified social accounts with no buyer protection carry high fraud risk.`;
+    bottomLineRecommendation =
+      "Do not send 100% upfront payment via personal UPI/GPay. Insist on Cash on Delivery with open-box inspection or cancel the order.";
+  } else if (hasComplaints) {
     trustVerdictLevel = "elevated_risk";
     trustVerdictTitle = "ELEVATED RISK — CONSUMER COMPLAINTS FOUND";
     executiveSummary = `@${handle} has public discussion mentions citing consumer grievances or delivery disputes. Exercise caution before sending upfront payment.`;
-    bottomLineRecommendation = "Do not transfer full payment upfront. Insist on Cash on Delivery (COD) or escrow payment protection.";
+    bottomLineRecommendation =
+      "Do not transfer full payment upfront. Insist on Cash on Delivery (COD) or escrow payment protection.";
   } else if (hasCheaper) {
     trustVerdictLevel = "caution";
     trustVerdictTitle = "ACTIVE SELLER — LOWER PRICES AVAILABLE ONLINE";
     executiveSummary = `@${handle} has verified public profile signals and no scam complaints indexed. However, comparable products are available significantly cheaper on established retail platforms.`;
-    bottomLineRecommendation = "Compare official retail alternatives (e.g. Flipkart/Amazon) for better prices, verified brand warranties, and hassle-free return policies before buying.";
+    bottomLineRecommendation =
+      "Compare official retail alternatives (e.g. Flipkart/Amazon) for better prices, verified brand warranties, and hassle-free return policies before buying.";
   } else {
     trustVerdictLevel = "clean";
     trustVerdictTitle = "ESTABLISHED PROFILE — CLEAN PUBLIC SIGNALS";
     executiveSummary = `@${handle} shows active public presence, realistic pricing, and no indexed consumer disputes. Standard safe shopping precautions apply.`;
-    bottomLineRecommendation = "Profile signals appear genuine. For high-value orders, request a short video proof of stock or Cash on Delivery.";
+    bottomLineRecommendation =
+      "Profile signals appear genuine. For high-value orders, request a short video proof of stock or Cash on Delivery.";
   }
 
   // Section 06 Checklist
@@ -202,11 +273,12 @@ Your job is to synthesize factual investigative data for an Instagram seller (@$
 CRITICAL GUIDELINES:
 1. Speak directly to the buyer in clear, helpful, everyday English. Answer their core questions: "Is this seller legitimate?", "Am I getting a good price?", "What should I do before paying?"
 2. Grounding: ONLY use the provided evidence. DO NOT invent facts, store names, prices, or external URLs.
-3. Neutral & Objective Tone: Do not use defamatory words or definitive accusations of fraud. Present facts with clear risk context.
-4. Output STRICT JSON format matching this schema:
+3. Impersonation & Clone Detection: If the profile has very low followers (< 500), has 'No COD' / pre-payment terms, or if reputation evidence indicates brand scam alerts or official accounts with larger followers, assign "elevated_risk" with title "HIGH RISK — SUSPECTED FAKE / IMPERSONATION ACCOUNT" and urge the buyer not to transfer money.
+4. Neutral & Objective Tone: Clearly communicate high-risk indicators to protect consumer funds without ungrounded speculation.
+5. Output STRICT JSON format matching this schema:
 {
   "trustVerdictLevel": "clean" | "caution" | "elevated_risk",
-  "trustVerdictTitle": "Short 4-6 word punchy verdict header (e.g. 'ACTIVE SELLER — LOWER PRICES AVAILABLE ONLINE' or 'ESTABLISHED PROFILE — CLEAN PUBLIC SIGNALS')",
+  "trustVerdictTitle": "Short 4-6 word punchy verdict header (e.g. 'HIGH RISK — SUSPECTED FAKE / IMPERSONATION ACCOUNT' or 'ACTIVE SELLER — LOWER PRICES AVAILABLE ONLINE' or 'ESTABLISHED PROFILE — CLEAN PUBLIC SIGNALS')",
   "executiveSummary": "2-3 friendly, insightful sentences summarizing the seller's legitimacy, price competitiveness, and public reputation.",
   "bottomLineRecommendation": "1-2 actionable sentences telling the buyer exactly what precaution to take before sending money.",
   "keyFindings": [

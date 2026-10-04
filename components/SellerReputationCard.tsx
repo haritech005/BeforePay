@@ -110,7 +110,11 @@ export default function SellerReputationCard({
         </div>
 
         <div className="shrink-0 flex items-center gap-2">
-          {mentions.length > 0 ? (
+          {data?.summaryFindings?.hasImpersonationAlerts ? (
+            <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-900 text-xs font-bold border border-rose-300">
+              Scam &amp; Clone Alerts Detected
+            </span>
+          ) : mentions.length > 0 ? (
             <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300">
               Dispute Mentions Detected
             </span>
@@ -125,46 +129,69 @@ export default function SellerReputationCard({
       {/* Grievances List or Clean Record Banner */}
       {mentions.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {mentions.map((mention, idx) => (
-            <div
-              key={idx}
-              className="p-4 rounded-xl bg-amber-50/50 border border-amber-200 hover:border-amber-300 transition-colors flex flex-col justify-between gap-3"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold text-amber-800 px-2 py-0.5 rounded bg-amber-100 uppercase tracking-wider truncate max-w-[160px]">
-                    {mention.source}
-                  </span>
-                  <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                    Dispute Signal
-                  </span>
+          {mentions.map((mention, idx) => {
+            const lowerSnippet = (mention.title + " " + mention.snippet).toLowerCase();
+            const isScamAlert =
+              lowerSnippet.includes("scam alert") ||
+              lowerSnippet.includes("fake page") ||
+              lowerSnippet.includes("fake account") ||
+              lowerSnippet.includes("impersonation") ||
+              lowerSnippet.includes("beware of fake") ||
+              lowerSnippet.includes("duplicate account");
+
+            return (
+              <div
+                key={idx}
+                className={`p-4 rounded-xl ${
+                  isScamAlert
+                    ? "bg-rose-50/70 border-rose-200 hover:border-rose-300"
+                    : "bg-amber-50/50 border-amber-200 hover:border-amber-300"
+                } border transition-colors flex flex-col justify-between gap-3`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-[11px] font-bold ${
+                      isScamAlert ? "text-rose-900 bg-rose-100" : "text-amber-800 bg-amber-100"
+                    } px-2 py-0.5 rounded uppercase tracking-wider truncate max-w-[160px]`}>
+                      {mention.source}
+                    </span>
+                    <span className={`text-[10px] font-bold ${
+                      isScamAlert
+                        ? "text-rose-800 bg-rose-100 border-rose-300"
+                        : "text-amber-800 bg-amber-100 border-amber-300"
+                    } px-2 py-0.5 rounded border`}>
+                      {isScamAlert ? "Scam Alert" : "Dispute Signal"}
+                    </span>
+                  </div>
+
+                  <h4
+                    className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug"
+                    title={mention.title}
+                  >
+                    {mention.title}
+                  </h4>
+
+                  {mention.snippet && (
+                    <p className={`text-xs text-slate-700 line-clamp-3 leading-relaxed bg-white p-2.5 rounded-lg border ${
+                      isScamAlert ? "border-rose-200" : "border-amber-200"
+                    } font-sans italic`}>
+                      &ldquo;{mention.snippet}&rdquo;
+                    </p>
+                  )}
                 </div>
 
-                <h4
-                  className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug"
-                  title={mention.title}
+                <a
+                  href={mention.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1 self-start pt-1"
                 >
-                  {mention.title}
-                </h4>
-
-                {mention.snippet && (
-                  <p className="text-xs text-slate-700 line-clamp-3 leading-relaxed bg-white p-2.5 rounded-lg border border-amber-200 font-sans italic">
-                    &ldquo;{mention.snippet}&rdquo;
-                  </p>
-                )}
+                  <span>Inspect original discussion</span>
+                  <ExternalLinkIcon className="w-3 h-3" />
+                </a>
               </div>
-
-              <a
-                href={mention.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1 self-start pt-1"
-              >
-                <span>Inspect original discussion</span>
-                <ExternalLinkIcon className="w-3 h-3" />
-              </a>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 flex items-start gap-3">

@@ -156,6 +156,22 @@ export default function SellerProfileCard({
         </div>
       </div>
 
+      {/* Impersonation / High Risk Alert Banner */}
+      {data?.signals?.impersonationRisk === "high" && (
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3">
+          <AlertCircleIcon className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="flex flex-col gap-1 text-xs">
+            <span className="font-bold text-rose-900">
+              High Risk Impersonation / Pre-Payment Terms Warning
+            </span>
+            <p className="text-rose-800 leading-relaxed">
+              {data.signals.suspectedCloneDetails?.reason ||
+                `This account has only ${data.followersCount} followers and enforces strict pre-payment (No COD) via private WhatsApp. Scammers frequently clone legitimate brand names with low-follower pages.`}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Metrics Row */}
       <div className="grid grid-cols-3 gap-3 text-center">
         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">

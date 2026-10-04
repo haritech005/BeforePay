@@ -21,6 +21,8 @@ export interface SellerReputationData {
   summaryFindings: {
     hasDirectComplaints: boolean;
     hasForumDiscussions: boolean;
+    hasImpersonationAlerts?: boolean;
+    impersonationAlertCount?: number;
     indexedPlatforms: string[];
   };
   observations: string[];
@@ -199,13 +201,13 @@ function isPromotionalOrSellerPost(combinedText: string): boolean {
 
 /**
  * Validates whether a search result snippet represents a genuine third-party consumer grievance,
- * complaint, scam allegation, or dispute thread rather than promotional product marketing.
+ * complaint, scam allegation, or brand impersonation warning.
  */
 function isConsumerGrievance(
   item: { title: string; snippet: string; link: string; source: string },
   handle: string
 ): boolean {
-  // 1. Must strictly pertain to the queried seller
+  // 1. Must strictly pertain to the queried seller/brand
   if (!isRelevantToSeller(item, handle)) {
     return false;
   }
@@ -214,7 +216,35 @@ function isConsumerGrievance(
   const lowerLink = item.link.toLowerCase();
   const platform = classifyPlatform(item.link, item.source);
 
-  // Exclude primary profile page of the seller itself
+  // Top Priority: Impersonation & Scam Alerts (must NEVER be discarded as promo)
+  const scamAlertPatterns = [
+    "scam alert",
+    "scam warning",
+    "fake page",
+    "fake pages",
+    "fake account",
+    "fake accounts",
+    "fake profile",
+    "impersonation",
+    "impersonating",
+    "beware of fake",
+    "beware of scammers",
+    "duplicate account",
+    "duplicate page",
+    "copying our",
+    "stolen content",
+    "stolen videos",
+    "stolen reels",
+    "stolen photos",
+    "fraud alert",
+    "cheating page",
+  ];
+
+  if (scamAlertPatterns.some((pattern) => combinedText.includes(pattern))) {
+    return true;
+  }
+
+  // Exclude primary profile page of the seller itself if purely bio
   if (
     lowerLink.match(/instagram\.com\/[^/]+\/?$/) &&
     !combinedText.includes("complaint") &&
@@ -223,7 +253,7 @@ function isConsumerGrievance(
     return false;
   }
 
-  // 2. Immediate rejection of product sales / store promotional drops
+  // 2. Immediate rejection of pure product sales / store promotional drops
   if (isPromotionalOrSellerPost(combinedText)) {
     return false;
   }
@@ -283,7 +313,7 @@ function isConsumerGrievance(
     );
   }
 
-  // On social media (Instagram, Facebook), ONLY keep if explicit victim dispute statement exists
+  // On social media (Instagram, Facebook), keep if explicit dispute or alert exists
   return hasExplicitComplaint;
 }
 
@@ -308,8 +338,16 @@ export async function searchSellerReputation(
     };
   }
 
-  // Quota-optimized focused boolean search query
-  const query = `"${handle}" (scam OR complaint OR fraud OR "not delivered" OR "bad experience" OR review)`;
+  // Expand query to include spaced brand name for accurate social alert capture
+  const spacedHandle = handle
+    .replace(/[._-]/g, " ")
+    .replace(/\b(in|com|store|shop|official)\b/gi, "")
+    .trim();
+
+  const query =
+    spacedHandle && spacedHandle.toLowerCase() !== handle.toLowerCase()
+      ? `("${handle}" OR "${spacedHandle}") (scam OR "scam alert" OR fake OR fraud OR complaint OR impersonation OR "not delivered" OR cheated OR review)`
+      : `"${handle}" (scam OR "scam alert" OR fake OR fraud OR complaint OR impersonation OR "not delivered" OR cheated OR review)`;
 
   try {
     const response = await querySerpApi<SerpApiSearchResponse>({
@@ -403,8 +441,33 @@ export async function searchSellerReputation(
     const hasConsumerBoards = filteredGrievances.some((m) => m.platformType === "consumer_board");
     const hasForums = filteredGrievances.some((m) => m.platformType === "forum");
 
+    const impersonationAlertKeywords = [
+      "scam alert",
+      "fake page",
+      "fake account",
+      "impersonation",
+      "beware of fake",
+      "duplicate account",
+      "stolen reels",
+      "stolen videos",
+      "stolen photos",
+      "copying our",
+    ];
+
+    const impersonationAlerts = filteredGrievances.filter((m) => {
+      const lower = (m.title + " " + m.snippet).toLowerCase();
+      return impersonationAlertKeywords.some((kw) => lower.includes(kw));
+    });
+
+    const hasImpersonationAlerts = impersonationAlerts.length > 0;
+
     const observations: string[] = [];
     if (totalMentions > 0) {
+      if (hasImpersonationAlerts) {
+        observations.push(
+          `Impersonation Scam Warning: Identified ${impersonationAlerts.length} public alert(s) / notice(s) warning of fake duplicate pages copying this brand to scam buyers.`
+        );
+      }
       observations.push(
         `Identified ${totalMentions} public consumer grievance record${totalMentions === 1 ? "" : "s"} / dispute thread${totalMentions === 1 ? "" : "s"} across ${indexedPlatforms.length} platform${indexedPlatforms.length === 1 ? "" : "s"}.`
       );
@@ -435,6 +498,8 @@ export async function searchSellerReputation(
       summaryFindings: {
         hasDirectComplaints: totalMentions > 0,
         hasForumDiscussions: hasForums,
+        hasImpersonationAlerts,
+        impersonationAlertCount: impersonationAlerts.length,
         indexedPlatforms,
       },
       observations,
