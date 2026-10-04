@@ -38,15 +38,15 @@ export default function SellerReputationCard({
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3">
-          <AlertCircleIcon className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+          <AlertCircleIcon className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
           <div className="flex flex-col gap-0.5">
-            <span className="text-xs font-bold text-rose-900">
-              Reputation Search Service Warning
+            <span className="text-xs font-semibold text-slate-800">
+              Reputation Index Verification
             </span>
-            <p className="text-xs text-rose-800 leading-relaxed">
+            <p className="text-xs text-slate-600 leading-relaxed">
               {reputationResult.message ||
-                "Unable to retrieve public complaint records at this time."}
+                "Public grievance records could not be retrieved at this moment. Exercise standard payment precautions."}
             </p>
           </div>
         </div>

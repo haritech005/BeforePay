@@ -308,10 +308,17 @@ Generate the consumer trust synthesis JSON now.`;
       temperature: 0.1,
     });
 
-    const response = await ollama.invoke([
+    // Enforce a strict 7-second timeout on Ollama generation to guarantee snappy UI response
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Ollama generation timed out")), 7000)
+    );
+
+    const invokePromise = ollama.invoke([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ]);
+
+    const response = await Promise.race([invokePromise, timeoutPromise]);
 
     const responseText = typeof response.content === "string" ? response.content : JSON.stringify(response.content);
 

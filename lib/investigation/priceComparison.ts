@@ -163,27 +163,34 @@ export async function compareProductPrices(
     const rawResults: SerpApiShoppingItem[] = [];
     let shoppingSourceUrl: string | undefined;
 
-    for (const query of queriesToRun) {
-      try {
-        const response = await querySerpApi<SerpApiShoppingResponse>(
-          {
-            engine: "google_shopping",
-            q: query,
-            gl: "in",
-            hl: "en",
-          },
-          12000
-        );
+    // Run shopping queries concurrently in parallel to minimize latency
+    const searchPromises = queriesToRun.map((query) =>
+      querySerpApi<SerpApiShoppingResponse>(
+        {
+          engine: "google_shopping",
+          q: query,
+          gl: "in",
+          hl: "en",
+        },
+        15000
+      )
+    );
 
+    const settledResults = await Promise.allSettled(searchPromises);
+
+    for (let i = 0; i < settledResults.length; i++) {
+      const res = settledResults[i];
+      if (res.status === "fulfilled") {
+        const response = res.value;
         if (response.search_metadata?.google_shopping_url && !shoppingSourceUrl) {
           shoppingSourceUrl = response.search_metadata.google_shopping_url;
         }
-
         if (response.shopping_results) {
           rawResults.push(...response.shopping_results);
         }
-      } catch (qErr) {
-        console.warn(`Google shopping query warning for '${query}':`, qErr);
+      } else {
+        // Silently tolerate single-query timeout or partial failure
+        console.warn(`Google shopping query notice for '${queriesToRun[i]}':`, res.reason?.message || res.reason);
       }
     }
 
