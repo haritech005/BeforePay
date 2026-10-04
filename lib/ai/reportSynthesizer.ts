@@ -165,15 +165,16 @@ export function generateDeterministicReport(evidence: InvestigationEvidence): AI
   let bottomLineRecommendation = "";
 
   const pData = sellerProfile?.data;
-  const isClone =
+  const isLowFollowerCount = !pData || pData.followersCount < 2000;
+  const isSuspectedClone =
     pData?.signals?.impersonationRisk === "high" ||
     Boolean(pData?.signals?.suspectedCloneDetails) ||
-    hasImpersonationAlerts;
+    (hasImpersonationAlerts && isLowFollowerCount);
   const isHighRiskTerms =
     Boolean(pData?.signals?.isLowFollowers) &&
     (Boolean(pData?.signals?.hasNoCodPolicy) || Boolean(pData?.signals?.isDirectWhatsAppOnly));
 
-  if (isClone) {
+  if (isSuspectedClone) {
     trustVerdictLevel = "elevated_risk";
     trustVerdictTitle = "HIGH RISK — SUSPECTED FAKE / IMPERSONATION ACCOUNT";
     executiveSummary = `CRITICAL WARNING: This account (@${handle}) shows high-risk duplicate/clone signatures. ${
@@ -182,11 +183,17 @@ export function generateDeterministicReport(evidence: InvestigationEvidence): AI
         : ""
     } ${
       hasImpersonationAlerts
-        ? "Public scam alerts warn that fraudulent accounts copy this brand to solicit advance WhatsApp payments."
+        ? "Google intelligence & public scam notices warn that fraudulent accounts copy this brand to solicit advance WhatsApp payments."
         : ""
     } It has only ${pData?.followersCount || 0} followers and strictly enforces upfront pre-payment.`;
     bottomLineRecommendation =
       "DO NOT TRANSFER MONEY. This account is strongly suspected to be a fake duplicate page mimicking a legitimate brand. Verify the official brand profile before paying.";
+  } else if (hasImpersonationAlerts && pData && pData.followersCount >= 2000) {
+    trustVerdictLevel = "caution";
+    trustVerdictTitle = "ESTABLISHED BRAND — ACTIVE COPYCAT SCAM ALERTS";
+    executiveSummary = `@${handle} appears to be an established brand profile (${pData.followersCount.toLocaleString("en-IN")} followers), but public notices & Google AI Overviews warn that multiple fraudulent clone accounts actively impersonate this business. Always ensure you are on this exact handle and not paying via unofficial WhatsApp numbers.`;
+    bottomLineRecommendation =
+      "Double-check that you are communicating strictly with this verified handle (@" + handle + ") and official checkout domain. Never transfer money to alternative WhatsApp accounts claiming to represent this store.";
   } else if (isHighRiskTerms) {
     trustVerdictLevel = "elevated_risk";
     trustVerdictTitle = "HIGH RISK — UNVERIFIED ACCOUNT WITH NO COD";

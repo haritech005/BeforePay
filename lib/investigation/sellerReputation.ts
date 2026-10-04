@@ -13,11 +13,26 @@ export interface ReputationMentionItem {
   platformType?: "forum" | "consumer_board" | "social_media" | "web";
 }
 
+export interface GoogleAiOverviewData {
+  paragraphs: string[];
+  bulletPoints: Array<{
+    title?: string;
+    snippet: string;
+  }>;
+  references: Array<{
+    title?: string;
+    link: string;
+    source?: string;
+  }>;
+  hasImpersonationWarning: boolean;
+}
+
 export interface SellerReputationData {
   sellerHandle: string;
   queryUsed: string;
   totalMentions: number;
   mentions: ReputationMentionItem[];
+  aiOverview?: GoogleAiOverviewData;
   summaryFindings: {
     hasDirectComplaints: boolean;
     hasForumDiscussions: boolean;
@@ -37,10 +52,27 @@ interface SerpApiOrganicResult {
   date?: string;
 }
 
+interface SerpApiAiOverviewBlock {
+  type?: string;
+  snippet?: string;
+  list?: Array<{
+    title?: string;
+    snippet?: string;
+  }>;
+}
+
 interface SerpApiSearchResponse {
   search_metadata?: {
     status?: string;
     google_url?: string;
+  };
+  ai_overview?: {
+    text_blocks?: SerpApiAiOverviewBlock[];
+    references?: Array<{
+      title?: string;
+      link?: string;
+      source?: string;
+    }>;
   };
   organic_results?: SerpApiOrganicResult[];
   discussions_and_forums?: Array<{
@@ -318,6 +350,84 @@ function isConsumerGrievance(
 }
 
 /**
+ * Parses Google AI Overview text blocks, lists, and reference citations from SerpApi.
+ */
+function parseAiOverview(
+  rawOverview?: SerpApiSearchResponse["ai_overview"]
+): GoogleAiOverviewData | undefined {
+  if (!rawOverview || !rawOverview.text_blocks || rawOverview.text_blocks.length === 0) {
+    return undefined;
+  }
+
+  const paragraphs: string[] = [];
+  const bulletPoints: Array<{ title?: string; snippet: string }> = [];
+
+  for (const block of rawOverview.text_blocks) {
+    if (block.type === "paragraph" || (!block.type && block.snippet && !block.list)) {
+      if (block.snippet) paragraphs.push(block.snippet);
+    } else if (block.type === "list" || block.list) {
+      if (Array.isArray(block.list)) {
+        for (const item of block.list) {
+          if (item.snippet) {
+            bulletPoints.push({
+              title: item.title,
+              snippet: item.snippet,
+            });
+          }
+        }
+      }
+    } else if (block.snippet) {
+      paragraphs.push(block.snippet);
+    }
+  }
+
+  const references = (rawOverview.references || [])
+    .filter((ref) => Boolean(ref.link))
+    .map((ref) => ({
+      title: ref.title || ref.source || "Official Source",
+      link: ref.link as string,
+      source: ref.source,
+    }));
+
+  if (paragraphs.length === 0 && bulletPoints.length === 0) {
+    return undefined;
+  }
+
+  const fullText = (
+    paragraphs.join(" ") +
+    " " +
+    bulletPoints.map((b) => (b.title || "") + " " + b.snippet).join(" ")
+  ).toLowerCase();
+
+  const impersonationWarningKeywords = [
+    "impersonat",
+    "scam alert",
+    "fake account",
+    "fake page",
+    "fake social media",
+    "stolen video",
+    "stolen reel",
+    "stolen photo",
+    "copying",
+    "scammer",
+    "fraudulent",
+    "unofficial",
+    "duplicate",
+  ];
+
+  const hasImpersonationWarning = impersonationWarningKeywords.some((kw) =>
+    fullText.includes(kw)
+  );
+
+  return {
+    paragraphs,
+    bulletPoints,
+    references,
+    hasImpersonationWarning,
+  };
+}
+
+/**
  * Searches public Google index, forums, and complaint directories for mentions of the seller handle.
  * Filters results to highlight genuine consumer dispute and grievance records.
  *
@@ -457,16 +567,27 @@ export async function searchSellerReputation(
       "copying our",
     ];
 
+    const aiOverview = parseAiOverview(response.ai_overview);
+
     const impersonationAlerts = filteredGrievances.filter((m) => {
       const lower = (m.title + " " + m.snippet).toLowerCase();
       return impersonationAlertKeywords.some((kw) => lower.includes(kw));
     });
 
-    const hasImpersonationAlerts = impersonationAlerts.length > 0;
+    const hasImpersonationAlerts =
+      impersonationAlerts.length > 0 || Boolean(aiOverview?.hasImpersonationWarning);
+    const impersonationAlertCount =
+      impersonationAlerts.length + (aiOverview?.hasImpersonationWarning ? 1 : 0);
 
     const observations: string[] = [];
+    if (aiOverview?.hasImpersonationWarning) {
+      observations.push(
+        "Google AI Overview Alert: Google's indexed intelligence warns that fraudulent clone accounts actively impersonate this brand using stolen media and discount lures."
+      );
+    }
+
     if (totalMentions > 0) {
-      if (hasImpersonationAlerts) {
+      if (impersonationAlerts.length > 0) {
         observations.push(
           `Impersonation Scam Warning: Identified ${impersonationAlerts.length} public alert(s) / notice(s) warning of fake duplicate pages copying this brand to scam buyers.`
         );
@@ -498,11 +619,12 @@ export async function searchSellerReputation(
       queryUsed: query,
       totalMentions,
       mentions: filteredGrievances,
+      aiOverview,
       summaryFindings: {
         hasDirectComplaints: totalMentions > 0,
         hasForumDiscussions: hasForums,
         hasImpersonationAlerts,
-        impersonationAlertCount: impersonationAlerts.length,
+        impersonationAlertCount,
         indexedPlatforms,
       },
       observations,

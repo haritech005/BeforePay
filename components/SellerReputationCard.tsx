@@ -8,6 +8,7 @@ import {
   SearchIcon,
   AlertCircleIcon,
   ShieldCheckIcon,
+  SparklesIcon,
 } from "./Icons";
 
 interface SellerReputationCardProps {
@@ -56,6 +57,7 @@ export default function SellerReputationCard({
 
   const data = reputationResult?.data;
   const mentions = data?.mentions || [];
+  const aiOverview = data?.aiOverview;
 
   return (
     <section className="bg-white rounded-2xl shadow-xs p-5 sm:p-6 flex flex-col gap-4 border border-slate-200">
@@ -104,7 +106,7 @@ export default function SellerReputationCard({
               Search Target: @{displayHandle}
             </span>
             <p className="text-xs text-slate-500 mt-0.5">
-              Checked Reddit, Quora, consumer forums, and public complaint records.
+              Checked Google Search, AI Overviews, Reddit, Quora, and public grievance records.
             </p>
           </div>
         </div>
@@ -125,6 +127,74 @@ export default function SellerReputationCard({
           )}
         </div>
       </div>
+
+      {/* Google AI Overview (when available from SerpApi) */}
+      {aiOverview && (
+        <div className="p-4 sm:p-5 rounded-xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xs flex flex-col gap-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <SparklesIcon className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span className="text-xs font-bold text-white tracking-wide uppercase">
+                Google AI Overview &bull; Brand &amp; Impersonation Intelligence
+              </span>
+            </div>
+            {aiOverview.hasImpersonationWarning && (
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[11px] font-bold border border-rose-500/40">
+                Impersonation Alert Identified
+              </span>
+            )}
+          </div>
+
+          {/* Paragraphs */}
+          <div className="space-y-2">
+            {aiOverview.paragraphs.map((p, idx) => (
+              <p key={idx} className="text-xs text-slate-300 leading-relaxed">
+                {p}
+              </p>
+            ))}
+          </div>
+
+          {/* Structured Bullets */}
+          {aiOverview.bulletPoints.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              {aiOverview.bulletPoints.map((bp, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 rounded-lg bg-slate-800/80 border border-slate-700/60 flex flex-col gap-1"
+                >
+                  {bp.title && (
+                    <span className="text-xs font-bold text-indigo-300">
+                      {bp.title}
+                    </span>
+                  )}
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    {bp.snippet}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Citations / Reference Links */}
+          {aiOverview.references.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
+              <span className="font-semibold text-slate-300">Citations:</span>
+              {aiOverview.references.map((ref, idx) => (
+                <a
+                  key={idx}
+                  href={ref.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 text-indigo-300 hover:text-indigo-200 hover:bg-slate-700 transition-colors truncate max-w-[220px]"
+                >
+                  <span className="truncate">{ref.title || ref.source || "Source"}</span>
+                  <ExternalLinkIcon className="w-2.5 h-2.5 shrink-0" />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Grievances List or Clean Record Banner */}
       {mentions.length > 0 ? (
