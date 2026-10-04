@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BeforePay — Consumer Verification & Seller Dossier",
+  title: "BeforePay - Consumer Verification & Seller Dossier",
   description:
     "An AI-powered public evidence investigation tool for Instagram sellers and product listings. Examine profiles, reverse-search images, compare prices, and inspect public reviews before making a payment.",
   keywords: [
@@ -27,6 +27,30 @@ export const metadata: Metadata = {
     "consumer protection",
     "merchant forensics",
   ],
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/brand/logo.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
+  openGraph: {
+    title: "BeforePay - Consumer Verification & Seller Dossier",
+    description:
+      "Verify Instagram sellers, reverse-search product photos, compare prices on verified stores, and scan dispute forums before paying.",
+    siteName: "BeforePay",
+    images: [
+      {
+        url: "/brand/logo.svg",
+        width: 220,
+        height: 48,
+        alt: "BeforePay Logo",
+      },
+    ],
+    locale: "en_IN",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
