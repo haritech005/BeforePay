@@ -15,6 +15,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  ),
   title: "BeforePay - Consumer Verification & Seller Dossier",
   description:
     "An AI-powered public evidence investigation tool for Instagram sellers and product listings. Examine profiles, reverse-search images, compare prices, and inspect public reviews before making a payment.",

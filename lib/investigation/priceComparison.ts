@@ -89,6 +89,20 @@ export interface PriceComparisonOptions {
 }
 
 /**
+ * Normalizes and shortens candidate titles to crisp Google Shopping search terms (max 6-7 words, no junk punctuation).
+ */
+export function cleanShoppingQuery(raw: string): string {
+  if (!raw) return "";
+  const clean = raw
+    .replace(/[^\w\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = clean.split(" ").filter((w) => w.length > 1);
+  return words.slice(0, 7).join(" ");
+}
+
+/**
  * Dedicated function to search Google Shopping listings and filter for cheaper comparable alternatives.
  * Supports searching by direct product name and/or candidate keywords discovered via Google Lens.
  */
@@ -125,12 +139,13 @@ export async function compareProductPrices(
   // Determine search queries
   const queriesToRun: string[] = [];
   if (productName) {
-    queriesToRun.push(productName);
+    const cleanName = cleanShoppingQuery(productName);
+    if (cleanName) queriesToRun.push(cleanName);
   }
   for (const kw of lensKeywords) {
-    const trimmed = (kw || "").trim();
-    if (trimmed && !queriesToRun.includes(trimmed)) {
-      queriesToRun.push(trimmed);
+    const cleanKw = cleanShoppingQuery(kw);
+    if (cleanKw && !queriesToRun.includes(cleanKw)) {
+      queriesToRun.push(cleanKw);
       if (queriesToRun.length >= 2) break; // Maximum 2 shopping queries
     }
   }
@@ -150,12 +165,15 @@ export async function compareProductPrices(
 
     for (const query of queriesToRun) {
       try {
-        const response = await querySerpApi<SerpApiShoppingResponse>({
-          engine: "google_shopping",
-          q: query,
-          gl: "in",
-          hl: "en",
-        });
+        const response = await querySerpApi<SerpApiShoppingResponse>(
+          {
+            engine: "google_shopping",
+            q: query,
+            gl: "in",
+            hl: "en",
+          },
+          12000
+        );
 
         if (response.search_metadata?.google_shopping_url && !shoppingSourceUrl) {
           shoppingSourceUrl = response.search_metadata.google_shopping_url;
