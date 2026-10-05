@@ -7,6 +7,7 @@ export type SerpApiEngine =
   | "google_lens"
   | "google_news"
   | "google_forums"
+  | "google_ai_overview"
   | "instagram_profile";
 
 /**

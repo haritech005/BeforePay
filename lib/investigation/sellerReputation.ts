@@ -67,6 +67,7 @@ interface SerpApiSearchResponse {
     google_url?: string;
   };
   ai_overview?: {
+    page_token?: string;
     text_blocks?: SerpApiAiOverviewBlock[];
     references?: Array<{
       title?: string;
@@ -74,6 +75,15 @@ interface SerpApiSearchResponse {
       source?: string;
     }>;
   };
+  short_videos?: Array<{
+    position?: number;
+    title?: string;
+    link?: string;
+    source?: string;
+    profile_name?: string;
+    thumbnail?: string;
+    duration?: string;
+  }>;
   organic_results?: SerpApiOrganicResult[];
   discussions_and_forums?: Array<{
     title?: string;
@@ -270,6 +280,16 @@ function isConsumerGrievance(
     "stolen photos",
     "fraud alert",
     "cheating page",
+    "important notice",
+    "fake insta",
+    "fake social",
+    "using our saree",
+    "using our video",
+    "don't get scammed",
+    "dont get scammed",
+    "scammed",
+    "cheating people",
+    "only official",
   ];
 
   if (scamAlertPatterns.some((pattern) => combinedText.includes(pattern))) {
@@ -508,8 +528,41 @@ export async function searchSellerReputation(
       };
     }
 
+    // Resolve lazy-loaded Google AI Overview page_token if present
+    if (
+      response.ai_overview?.page_token &&
+      (!response.ai_overview.text_blocks || response.ai_overview.text_blocks.length === 0)
+    ) {
+      try {
+        const aiFollowUp = await querySerpApi<{
+          ai_overview?: {
+            text_blocks?: SerpApiAiOverviewBlock[];
+            references?: Array<{ title?: string; link?: string; source?: string }>;
+          };
+          text_blocks?: SerpApiAiOverviewBlock[];
+          references?: Array<{ title?: string; link?: string; source?: string }>;
+        }>(
+          {
+            engine: "google_ai_overview",
+            page_token: response.ai_overview.page_token,
+          },
+          5000
+        );
+
+        const blocks = aiFollowUp.ai_overview?.text_blocks || aiFollowUp.text_blocks;
+        const refs = aiFollowUp.ai_overview?.references || aiFollowUp.references;
+        if (blocks && blocks.length > 0) {
+          response.ai_overview.text_blocks = blocks;
+          if (refs) response.ai_overview.references = refs;
+        }
+      } catch (aiErr) {
+        console.warn("Google AI overview resolution notice:", aiErr);
+      }
+    }
+
     const organicList = response.organic_results || [];
     const forumList = response.discussions_and_forums || [];
+    const shortVideosList = response.short_videos || [];
 
     const rawItems = [
       ...organicList.map((item) => ({
@@ -526,6 +579,14 @@ export async function searchSellerReputation(
         link: forum.link || "#",
         snippet: forum.snippet || "",
         source: forum.source || "Discussion Forum",
+        date: undefined,
+      })),
+      ...shortVideosList.map((vid, idx) => ({
+        position: organicList.length + forumList.length + idx + 1,
+        title: vid.title || "Social media video alert",
+        link: vid.link || "#",
+        snippet: vid.title || "",
+        source: vid.source || vid.profile_name || "Social Media",
         date: undefined,
       })),
     ];
