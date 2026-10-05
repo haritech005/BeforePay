@@ -488,7 +488,7 @@ export async function searchSellerReputation(
         hl: "en",
         num: 10,
       },
-      16000
+      20000
     );
 
     if (response.error) {
@@ -546,7 +546,7 @@ export async function searchSellerReputation(
             engine: "google_ai_overview",
             page_token: response.ai_overview.page_token,
           },
-          5000
+          15000
         );
 
         const blocks = aiFollowUp.ai_overview?.text_blocks || aiFollowUp.text_blocks;
@@ -556,7 +556,10 @@ export async function searchSellerReputation(
           if (refs) response.ai_overview.references = refs;
         }
       } catch (aiErr) {
-        console.warn("Google AI overview resolution notice:", aiErr);
+        console.warn(
+          "Google AI overview resolution notice:",
+          aiErr instanceof Error ? aiErr.message : aiErr
+        );
       }
     }
 

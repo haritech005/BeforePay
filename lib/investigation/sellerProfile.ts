@@ -245,7 +245,7 @@ export async function fetchSellerProfile(
               hl: "en",
               num: 5,
             },
-            6000
+            15000
           );
 
           if (cloneSearch.organic_results && cloneSearch.organic_results.length > 0) {
@@ -282,7 +282,10 @@ export async function fetchSellerProfile(
         }
       } catch (cloneErr) {
         // Non-blocking duplicate search error
-        console.warn("Clone check non-blocking warning:", cloneErr);
+        console.warn(
+          "Clone check non-blocking warning:",
+          cloneErr instanceof Error ? cloneErr.message : cloneErr
+        );
       }
     }
 

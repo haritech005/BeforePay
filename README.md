@@ -162,7 +162,7 @@ BeforePay utilizes SerpApi as its core live search and social intelligence layer
 - **Submission Track**: AI Agents / Search Applications
 - **Project Originality**: This project was developed as a new application for the SerpApi India Hackathon 2026.
 - **AI Tools Used**: Developed with assistance from Antigravity IDE for development and paired programming; incorporates local Ollama (`gemma3:4b`) for report synthesis.
-- **Demo Video**: [Link to 3-Minute Demo Video](https://www.youtube.com/) *(Add your public or unlisted demo video URL)*
+- **Demo Video**: [Link to 3-Minute Demo Video](https://drive.google.com/file/d/1cJ1zZapfpi5FNsPiriDdjCZFCQwEbSAD/view?usp=sharing)
 - **Lead Participant**: Hariharan J ([GitHub](https://github.com/haritech005))
 
 ---
